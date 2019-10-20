@@ -1233,18 +1233,9 @@ menu "Runtimes"
 	  help
 	      Include the GOMP-compatible OpenMP run-time
 
-        choice
-	    depends on OPENMP_RT
-            prompt "OpenMP RT"
-            default OPENMP_RT_OMP
-
-          config OPENMP_RT_OMP
-              bool "CLANG-compatible (OMP)"
-
-          config OPENMP_RT_GOMP
-              bool "GNU-compatible (GOMP) [going away]"
-
-        endchoice
+        config OPENMP_RT_OMP
+            default n
+            bool "CLANG-compatible (OMP)"
 	
         config OPENMP_RT_DEBUG
             bool "Debug OpenMP RT";
