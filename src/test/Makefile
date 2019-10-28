@@ -17,6 +17,7 @@ obj-$(NAUT_CONFIG_TEST_CACHEPART) += cachepart.o
 obj-$(NAUT_CONFIG_OPENMP_RT_TESTS)  += openmp/
 obj-$(NAUT_CONFIG_NDPC_RT_TESTS) += ndpc/
 obj-$(NAUT_CONFIG_NESL_RT_TESTS) += nesl/
+obj-$(NAUT_CONFIG_HEARTBEAT_RT_TESTS) += heartbeat/
 
 obj-$(NAUT_CONFIG_X86_64_HOST) += ipi.o
 obj-$(NAUT_CONFIG_X86_64_HOST) += benchmark.o

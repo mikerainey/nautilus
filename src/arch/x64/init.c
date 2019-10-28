@@ -154,6 +154,10 @@
 #include <rt/nesl/nesl.h>
 #endif
 
+#ifdef NAUT_CONFIG_HEARTBEAT_RT
+#include <rt/heartbeat/heartbeat.h>
+#endif
+
 
 extern spinlock_t printk_lock;
 
@@ -226,7 +230,11 @@ runtime_init (void)
 #ifdef NAUT_CONFIG_OPENMP_RT
 	nk_openmp_init();
 #endif
-	
+
+#ifdef NAUT_CONFIG_HEARTBEAT_RT
+	nk_heartbeat_init();
+#endif
+
 }
 
 

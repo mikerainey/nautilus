@@ -1257,6 +1257,26 @@ menu "Runtimes"
             help 
               Racket support (via Multiverse only - no special code)
 
+        config HEARTBEAT_RT
+          bool  "HEARTBEAT RT"
+          depends on CXX_SUPPORT
+	  help
+	     Include the HEARTBEAT run-time
+
+        config HEARTBEAT_RT_DEBUG
+            bool "Debug HEARTBEAT RT";
+	    default n
+            depends on HEARTBEAT_RT
+            help 
+              Debugging output for the HEARTBEAT RT
+
+        config HEARTBEAT_RT_TESTS
+            bool "Include tests/benchmarks for HEARTBEAT RT";
+	    default n
+            depends on HEARTBEAT_RT
+            help 
+              Include HEARTBEAT simple tests 
+
 endmenu
 
 source "src/dev/Kconfig"
