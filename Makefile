@@ -616,6 +616,8 @@ endif # NAUT_CONFIG_CXX_SUPPORT
 
 			   #/usr/lib64/libc.a \
 
+#LDFLAGS += -L $(CPP_LD_LIBRARY_PATH) -lstdc++
+
 ifdef NAUT_CONFIG_PALACIOS
   PALACIOS_DIR=$(subst ",,$(NAUT_CONFIG_PALACIOS_DIR))
   CFLAGS += -I$(PALACIOS_DIR)/nautilus -I$(PALACIOS_DIR)/palacios/include

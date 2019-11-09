@@ -17,7 +17,7 @@ stdenv.mkDerivation rec {
   buildPhase = ''
     cp ${nautilusConfig} .config
     make oldconfig -j
-    make isoimage -j
+    make isoimage -j CPP_LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib/
   '';
 
   installPhase = ''

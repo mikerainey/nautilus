@@ -15,10 +15,13 @@
 #define WARN(fmt, args...)  WARN_PRINT("TEST: " fmt, ##args)
 #define ERROR(fmt, args...) ERROR_PRINT("TEST: " fmt, ##args)
 
+double mcsl_cycles_test();
+
 int 
 test_heartbeat (void)
 {
-        printk("heartbeat test!!!\n");
+  printk("heartbeat test!!!\n");
+  INFO("x=%f", mcsl_cycles_test());
     INFO("Starting simple test of heartbeat\n");
     return 0;
 }
