@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include <memory>
+#include <stdlib.h>
 
 #ifndef MCSL_CACHE_LINE_SZB
 #define MCSL_CACHE_LINE_SZB 128
@@ -76,10 +77,12 @@ public:
 
 template <std::size_t cache_align_szb=MCSL_CACHE_LINE_SZB>
 void* alloc(std::size_t sizeb) {
-  // aligned_sizeb needed because the second argument to aligned_alloc
-  // is required to be a multiple of the first
+  // later: all we need is a guarantee that the memory cannot overlap
+  // cache lines with any other allocated memory. is this
+  // code below sufficient?
   auto aligned_sizeb = sizeb + (sizeb % cache_align_szb);
-  return aligned_alloc(cache_align_szb, aligned_sizeb);
+  return malloc(cache_align_szb + aligned_sizeb); 
+  //return aligned_alloc(cache_align_szb, aligned_sizeb);
 }
 
 template <typename Item,

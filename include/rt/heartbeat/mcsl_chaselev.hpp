@@ -166,7 +166,7 @@ private:
   perworker::array<buffer_type> buffers;
 
   static
-  perworker::array<std::mt19937> random_number_generators;
+  random::rng_array_type random_number_generators;
 
   static
   std::size_t random_other_worker(size_t my_id) {
@@ -303,7 +303,7 @@ public:
     };
 
     for (std::size_t i = 0; i < random_number_generators.size(); ++i) {
-      random_number_generators[i].seed(i);
+      random_number_generators[i] = random::seed(i);
     }
 
     Scheduler_configuration::initialize_signal_handler(ping_thread_status);
@@ -343,7 +343,7 @@ perworker::array<typename chase_lev_work_stealing_scheduler<Scheduler_configurat
 template <typename Scheduler_configuration,
 	template <typename> typename Fiber,
 	typename Stats>
-perworker::array<std::mt19937> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::random_number_generators;
+random::rng_array_type chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::random_number_generators;
 
 template <typename Scheduler_configuration,
 	  template <typename> typename Fiber,

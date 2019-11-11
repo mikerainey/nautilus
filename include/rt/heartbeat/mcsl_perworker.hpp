@@ -6,6 +6,15 @@
 #define MCSL_MAX_NB_WORKERS_LG 7
 #endif
 
+extern "C"
+void nk_heartbeat_init_unique_id();
+
+extern "C"
+void nk_heartbeat_set_unique_id(unsigned id);
+
+extern "C"
+unsigned nk_heartbeat_read_unique_id();
+
 namespace mcsl {
 namespace perworker {
 
@@ -26,23 +35,35 @@ int default_max_nb_workers = 1 << default_max_nb_workers_lg;
 class unique_id {
 private:
 
-  static constexpr
-  int uninitialized_id = -1;
+  static
+  std::size_t nb_workers;
 
 public:
 
   static
+  void initialize(std::size_t _nb_workers) {
+    nb_workers = _nb_workers;
+    nk_heartbeat_init_unique_id();
+  }
+
+  static
+  void initialize_tls_worker(std::size_t id) {
+    nk_heartbeat_set_unique_id((unsigned)id);
+  }
+  
+  static
   std::size_t get_my_id() {
-    std::size_t my_id = -1;
-    return my_id;
+    return nk_heartbeat_read_unique_id();
   }
 
   static
   std::size_t get_nb_workers() {
-    return 0;
+    return nb_workers;
   }
 
 };
+
+std::size_t unique_id::nb_workers = 0;
 
 /*---------------------------------------------------------------------*/
 /* Per-worker array */

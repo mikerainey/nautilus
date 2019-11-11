@@ -10,6 +10,8 @@ extern "C" {
 double mcsl_cycles_test() {
   //  mcsl::atomic::aprintf("hi\n");
   mcsl::chaselev_deque<void*> deque;
+  deque.push(nullptr);
+  
   nbs.mine() = 123;
   auto s = mcsl::cycles::now();
   mcsl::cycles::spin_for(100000);
