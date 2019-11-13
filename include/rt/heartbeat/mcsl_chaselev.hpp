@@ -3,14 +3,26 @@
 #include <memory>
 #include <assert.h>
 #include <deque>
-#include <thread>
-#include <condition_variable>
 
 #include "mcsl_atomic.hpp"
 #include "mcsl_perworker.hpp"
 #include "mcsl_random.hpp"
 #include "mcsl_stats.hpp"
 #include "mcsl_snzi.hpp"
+
+typedef void* nk_thread_id_t;
+
+extern "C"
+nk_thread_id_t nk_thread_fork(void);
+
+extern "C"
+int nk_join_all_children(int (*output_consumer)(void *output));
+
+extern "C"
+void nk_sched_reap(int);
+
+extern "C"
+void nk_yield();
 
 namespace mcsl {
   
@@ -140,13 +152,6 @@ using fiber_status_type = enum fiber_status_enum {
   fiber_status_terminate
 };
 
-using ping_thread_status_type = enum ping_thread_status_enum {
-  ping_thread_status_active,
-  ping_thread_status_terminate,
-  ping_thread_status_finish,
-  ping_thread_status_disable
-};
-
 template <typename Scheduler_configuration,
 	  template <typename> typename Fiber,
 	  typename Stats>
@@ -172,9 +177,6 @@ private:
   std::size_t random_other_worker(size_t my_id) {
     return random::other_worker(my_id, random_number_generators);
   }
-
-  static
-  perworker::array<pthread_t> pthreads;
 
   static
   fiber_type* flush() {
@@ -207,16 +209,14 @@ public:
 
   static
   void launch(std::size_t nb_workers) {
+    perworker::unique_id::initialize(nb_workers);
+    perworker::unique_id::initialize_tls_worker(0);
     bool should_terminate = false;
     snzi_termination_detection_barrier<> termination_barrier;
     
     std::size_t nb_workers_exited = 0;
     std::mutex exit_lock;
     std::condition_variable exit_condition_variable;
-
-    ping_thread_status_type ping_thread_status = ping_thread_status_active;
-    std::mutex ping_thread_lock;
-    std::condition_variable ping_thread_condition_variable;
 
     using scheduler_status_type = enum scheduler_status_enum {
       scheduler_status_active,
@@ -233,7 +233,7 @@ public:
       auto my_id = perworker::unique_id::get_my_id();
       fiber_type* current = nullptr;
       while (current == nullptr) {
-        std::this_thread::yield();
+	nk_yield();
         auto k = random_other_worker(my_id);
         if (! deques[k].empty()) {
           termination_barrier.set_active(true);
@@ -284,42 +284,32 @@ public:
         assert((current == nullptr) && my_deque.empty());
         status = acquire();
       }
-      if (ping_thread_status != ping_thread_status_disable) {
-        std::unique_lock<std::mutex> lk(ping_thread_lock);
-        if (ping_thread_status == ping_thread_status_active) {
-          ping_thread_status = ping_thread_status_terminate;
-        }
-        ping_thread_condition_variable.wait(lk, [&] { return ping_thread_status == ping_thread_status_finish; });
-      }
-      {
-        std::unique_lock<std::mutex> lk(exit_lock);
-        auto nb = ++nb_workers_exited;
-        if (perworker::unique_id::get_my_id() == 0) {
-          exit_condition_variable.wait(lk, [&] { return nb_workers_exited == nb_workers; });
-        } else if (nb == nb_workers) {
-          exit_condition_variable.notify_one();
-        }
-      }
     };
 
     for (std::size_t i = 0; i < random_number_generators.size(); ++i) {
       random_number_generators[i] = random::seed(i);
     }
 
-    Scheduler_configuration::initialize_signal_handler(ping_thread_status);
+    Scheduler_configuration::initialize_signal_handler();
 
     termination_barrier.set_active(true);
+    nk_thread_id_t t;
     for (std::size_t i = 1; i < nb_workers; i++) {
-      auto t = std::thread([&] {
-        termination_barrier.set_active(true);
-        worker_loop();
-      });
-      pthreads[i] = t.native_handle();
-      t.detach();
+      t = nk_thread_fork();
+      //assert(t != NK_BAD_THREAD_ID);
+      if (t == 0) { // child thread
+	perworker::unique_id::initialize_tls_worker(i);
+	termination_barrier.set_active(true);
+	break;
+      } else {
+	// parent; goes on to fork again
+      }
     }
-    pthreads[0] = pthread_self();
-    Scheduler_configuration::launch_ping_thread(nb_workers, pthreads, ping_thread_status, ping_thread_lock, ping_thread_condition_variable);
     worker_loop();
+    if (nk_join_all_children(0)) {
+      assert(false); // there was a problem
+    }
+    nk_sched_reap(1); // clean up unconditionally
   }
 
   static
@@ -344,11 +334,6 @@ template <typename Scheduler_configuration,
 	template <typename> typename Fiber,
 	typename Stats>
 random::rng_array_type chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::random_number_generators;
-
-template <typename Scheduler_configuration,
-	  template <typename> typename Fiber,
-	  typename Stats>
-perworker::array<pthread_t> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::pthreads;
 
 template <typename Scheduler_configuration,
 	  template <typename> typename Fiber,

@@ -1,9 +1,18 @@
 #pragma once
 
 #include <map>
-//#include <iostream>
 
 #include "mcsl_perworker.hpp"
+
+static inline
+double getclock() {
+    double time;
+    // Returns a value in seconds of the time elapsed from some arbitrary,
+    // but consistent point.
+    double omp_get_wtime(void);
+    time = omp_get_wtime();
+    return time;
+}
 
 namespace mcsl {
 
@@ -14,7 +23,6 @@ public:
   using counter_id_type = typename Configuration::counter_id_type;
   
   using time_point_type = double;
-    //std::chrono::time_point<std::chrono::system_clock>;
 
   using configuration_type = Configuration;
   
@@ -37,11 +45,8 @@ private:
   perworker::array<double> all_total_idle_time;
   
   static
-  double since(time_point_type start) { /*
-    auto end = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    return elapsed.count(); */
-    return 0.0;
+  double since(time_point_type start) {
+    return getclock() - start;
   }
 
 public:
@@ -56,7 +61,7 @@ public:
 
   static
   void on_enter_launch() {
-    //    enter_launch_time = std::chrono::system_clock::now();
+    enter_launch_time = getclock();
   }
   
   static
@@ -69,8 +74,7 @@ public:
     if (! Configuration::enabled) {
       return time_point_type();
     }
-    //    return std::chrono::system_clock::now();
-    return 0.0;
+    return getclock();
   }
   
   static
