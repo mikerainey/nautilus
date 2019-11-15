@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_CYCLES_H_
+#define MCSL_CYCLES_H_
 
 #include <cstdint>
 
@@ -46,3 +47,5 @@ void spin_for(uint64_t nb_cycles) {
   
 } // end namespace
 } // end namespace
+
+#endif

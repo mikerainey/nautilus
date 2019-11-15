@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_SNZI_H_
+#define MCSL_SNZI_H_
 
 #include <new>
 
@@ -256,3 +257,5 @@ public:
 };
 
 } // end namespace
+
+#endif

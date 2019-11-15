@@ -1,4 +1,5 @@
 #include <functional>
+#include <map>
 
 #include <rt/heartbeat/mcsl.hpp>
 
@@ -20,6 +21,38 @@ using heartbeat_mechanism_type = enum heartbeat_mechanism_type {
   heartbeat_mechanism_interrupt_papi,
   heartbeat_mechanism_noop,
 };
+
+/*---------------------------------------------------------------------*/
+/* Stats */
+
+class stats_configuration {
+public:
+
+#ifdef SPAWNBENCH_STATS
+  static constexpr
+  bool enabled = true;
+#else
+  static constexpr
+  bool enabled = false;
+#endif
+
+  using counter_id_type = enum counter_id_enum {
+    nb_promotions,
+    nb_steals,
+    nb_counters
+  };
+
+  static
+  const char* name_of_counter(counter_id_type id) {
+    std::map<counter_id_type, const char*> names;
+    names[nb_promotions] = "nb_promotions";
+    names[nb_steals] = "nb_steals";
+    return names[id];
+  }
+  
+};
+
+using stats = mcsl::stats_base<stats_configuration>;
 
 /*---------------------------------------------------------------------*/
 /* Fiber (aka green thread) */
@@ -108,10 +141,10 @@ void launch(std::size_t nb_workers,
   bench_pre();
   {
     auto f_cont = new fiber<Scheduler_configuration>([=] (promotable*) {
-      end_time = mcsl::getclock();
+      end_time = getclock();
     });
     fiber<Scheduler_configuration>::add_edge(f_body, f_cont);
-    start_time = mcsl::getclock();
+    start_time = getclock();
     f_cont->release();
     f_body->release();
   }
@@ -218,12 +251,14 @@ void launch_incr_array(uint64_t nb_items, uint64_t nb_workers) {
     assert(m == nb_items);
     free(a);
   };
-  auto f = new incr_array_manual<software_polling_scheduler_configuration>(a, 0, nb_items);
-  launch<software_polling_scheduler_configuration, decltype(bench_pre), decltype(bench_post), decltype(f)>(nb_workers, bench_pre, bench_post, f);
+  using scheduler_config = noop_scheduler_configuration;
+  auto f = new incr_array_manual<scheduler_config>(a, 0, nb_items);
+  launch<scheduler_config, decltype(bench_pre), decltype(bench_post), decltype(f)>(nb_workers, bench_pre, bench_post, f);
 
 }
 
-extern "C"
+extern "C" {
 void test_launch_incr_array() {
   launch_incr_array(100 * 1000 * 1000, 1);
+}
 }

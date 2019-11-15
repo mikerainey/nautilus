@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_ATOMIC_H_
+#define MCSL_ATOMIC_H_
 
 #include <atomic>
 #include <stdarg.h>
@@ -25,3 +26,4 @@ bool compare_exchange(std::atomic<T>& cell, T& expected, T desired) {
 } // end namespace
 } // end namespace
 
+#endif

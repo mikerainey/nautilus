@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_STATS_H_
+#define MCSL_STATS_H_
 
 #include <map>
 
@@ -126,3 +127,5 @@ template <typename Configuration>
 perworker::array<double> stats_base<Configuration>::all_total_idle_time;
 
 } // end namespace
+
+#endif

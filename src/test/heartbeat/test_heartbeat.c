@@ -21,7 +21,7 @@ void test_launch_incr_array();
 int test_heartbeat (void) {
   //  INFO("x=%f", mcsl_cycles_test());
   INFO("Starting simple test of heartbeat\n");
-  
+  test_launch_incr_array();
   return 0;
 }
 

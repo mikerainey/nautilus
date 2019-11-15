@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_CHASELEV_H_
+#define MCSL_CHASELEV_H_
 
 #include <memory>
 #include <assert.h>
@@ -346,3 +347,5 @@ void commit() {
 }
 
 } // end namespace
+
+#endif

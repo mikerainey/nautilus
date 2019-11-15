@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_RANDOM_H_
+#define MCSL_RANDOM_H_
 
 #include <random>
 #include <assert.h>
@@ -47,3 +48,5 @@ std::size_t other_worker(std::size_t my_id, rng_array_type& rngs) {
   
 } // end namespace
 } // end namespace
+
+#endif

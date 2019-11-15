@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MCSL_ALIGNED_H_
+#define MCSL_ALIGNED_H_
 
 #include <type_traits>
 #include <cstdlib>
@@ -170,3 +171,5 @@ public:
 } // end namespace
 
 #undef MCSL_CACHE_LINE_SZB
+
+#endif
