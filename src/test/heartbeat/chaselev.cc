@@ -2,6 +2,10 @@
 
 #include <rt/heartbeat/mcsl.hpp>
 
+namespace std {
+    void __throw_bad_function_call() {}
+}
+
 /*---------------------------------------------------------------------*/
 /* Scheduler configuration */
 
@@ -217,4 +221,9 @@ void launch_incr_array(uint64_t nb_items, uint64_t nb_workers) {
   auto f = new incr_array_manual<software_polling_scheduler_configuration>(a, 0, nb_items);
   launch<software_polling_scheduler_configuration, decltype(bench_pre), decltype(bench_post), decltype(f)>(nb_workers, bench_pre, bench_post, f);
 
+}
+
+extern "C"
+void test_launch_incr_array() {
+  launch_incr_array(100 * 1000 * 1000, 1);
 }

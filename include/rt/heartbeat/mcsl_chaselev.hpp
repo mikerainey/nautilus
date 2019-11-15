@@ -214,10 +214,6 @@ public:
     bool should_terminate = false;
     snzi_termination_detection_barrier<> termination_barrier;
     
-    std::size_t nb_workers_exited = 0;
-    std::mutex exit_lock;
-    std::condition_variable exit_condition_variable;
-
     using scheduler_status_type = enum scheduler_status_enum {
       scheduler_status_active,
       scheduler_status_finish
