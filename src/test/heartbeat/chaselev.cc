@@ -4,7 +4,8 @@
 #include <rt/heartbeat/mcsl.hpp>
 
 namespace std {
-    void __throw_bad_function_call() {}
+  void __throw_bad_function_call() {}
+  void __throw_bad_alloc() {}
 }
 
 /*---------------------------------------------------------------------*/
@@ -129,7 +130,7 @@ double end_time, start_time;
 
 static
 void report_exectime() {
-  printf("exectime %.3f\n", end_time - start_time);
+  //  printf("exectime %.3f\n", end_time - start_time);
 }
 
 template <typename Scheduler_configuration,

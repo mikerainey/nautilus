@@ -5,14 +5,13 @@
 
 #include "mcsl_perworker.hpp"
 
+extern "C"
+uint64_t nk_sched_get_realtime();
+
 static inline
 double getclock() {
-    double time;
-    // Returns a value in seconds of the time elapsed from some arbitrary,
-    // but consistent point.
-    double omp_get_wtime(void);
-    time = omp_get_wtime();
-    return time;
+  uint64_t ns = nk_sched_get_realtime();
+  return (double)ns/1e9;
 }
 
 namespace mcsl {
