@@ -13,6 +13,6 @@ stdenv.mkDerivation {
   name = "nautilus-shell";
   buildInputs = [ qemu nautilus ];
   shellHook = ''
-    qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 2048 -curses -nographic
+    qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 2048 -curses -nographic -smp 4
   '';
 }

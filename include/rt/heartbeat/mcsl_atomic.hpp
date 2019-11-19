@@ -26,7 +26,6 @@ bool compare_exchange(std::atomic<T>& cell, T& expected, T desired) {
   cycles::spin_for(backoff_nb_cycles);
   return false;
 }
-
 } // end namespace
 } // end namespace
 

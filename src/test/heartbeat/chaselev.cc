@@ -1,5 +1,4 @@
 #include <functional>
-#include <map>
 
 #include <rt/heartbeat/mcsl.hpp>
 
@@ -26,6 +25,8 @@ using heartbeat_mechanism_type = enum heartbeat_mechanism_type {
 /*---------------------------------------------------------------------*/
 /* Stats */
 
+#define SPAWNBENCH_STATS 1
+
 class stats_configuration {
 public:
 
@@ -45,10 +46,13 @@ public:
 
   static
   const char* name_of_counter(counter_id_type id) {
-    std::map<counter_id_type, const char*> names;
-    names[nb_promotions] = "nb_promotions";
-    names[nb_steals] = "nb_steals";
-    return names[id];
+    if (id == nb_promotions) {
+      return "nb_promotions";
+    } else if (id == nb_steals) {
+      return "nb_steals";
+    } else {
+      return "<unknown>";
+    }
   }
   
 };
@@ -261,7 +265,12 @@ void launch_incr_array(uint64_t nb_items, uint64_t nb_workers) {
 }
 
 extern "C" {
+  
+int nk_get_num_cpus();
+  
 void test_launch_incr_array() {
-  launch_incr_array(10 * 1000 * 1000, 1);
+  int nb_workers = nk_get_num_cpus();
+  HEARTBEAT_DEBUG("starting on %d cores\n",nb_workers);  
+  launch_incr_array(20 * 1000 * 1000, nb_workers);
 }
 }

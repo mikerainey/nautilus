@@ -28,7 +28,7 @@ int test_heartbeat (void) {
 static int
 handle_heartbeat_test (char * buf, void * priv)
 {
-    return test_heartbeat();
+  return test_heartbeat();
 }
 
 static struct nk_test_impl test_heartbeat_impl = {

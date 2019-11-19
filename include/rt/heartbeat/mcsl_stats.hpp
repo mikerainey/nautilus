@@ -1,8 +1,6 @@
 #ifndef MCSL_STATS_H_
 #define MCSL_STATS_H_
 
-#include <map>
-
 #include "mcsl_perworker.hpp"
 
 extern "C"
@@ -97,8 +95,14 @@ public:
         counter_value += all_counters[i].counters[counter_id];
       }
       const char* counter_name = Configuration::name_of_counter((counter_id_type)counter_id);
+      if (counter_name == "nb_promotions") {
+	HEARTBEAT_DEBUG("nb_promotions %d\n", counter_value);
+      } else if (counter_name == "nb_steals") {
+	HEARTBEAT_DEBUG("nb_steals %d\n", counter_value);
+      }
       //      std::cout << counter_name << " " << counter_value << std::endl;
     }
+    HEARTBEAT_DEBUG("launch_duration %f\n", launch_duration);
     //    std::cout << "launch_duration " << launch_duration << std::endl;
     double cumulated_time = launch_duration * nb_workers;
     double total_idle_time = 0.0;
@@ -107,6 +111,8 @@ public:
     }
     double relative_idle = total_idle_time / cumulated_time;
     double utilization = 1.0 - relative_idle;
+    HEARTBEAT_DEBUG("total_idle_time %f\n", total_idle_time);
+    HEARTBEAT_DEBUG("utilization %f\n", utilization);
     //    std::cout << "total_idle_time " << total_idle_time << std::endl;
     //    std::cout << "utilization " << utilization << std::endl;
   }
