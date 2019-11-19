@@ -130,7 +130,7 @@ double end_time, start_time;
 
 static
 void report_exectime() {
-  //  printf("exectime %.3f\n", end_time - start_time);
+  HEARTBEAT_DEBUG("exectime %.3f\n", end_time - start_time);
 }
 
 template <typename Scheduler_configuration,
@@ -139,6 +139,8 @@ void launch(std::size_t nb_workers,
 	     const Bench_pre& bench_pre,
 	     const Bench_post& bench_post,
 	     Fiber_body f_body) {
+  mcsl::perworker::unique_id::initialize(nb_workers);
+  mcsl::perworker::unique_id::initialize_tls_worker(0);
   bench_pre();
   {
     auto f_cont = new fiber<Scheduler_configuration>([=] (promotable*) {
@@ -260,6 +262,6 @@ void launch_incr_array(uint64_t nb_items, uint64_t nb_workers) {
 
 extern "C" {
 void test_launch_incr_array() {
-  launch_incr_array(100 * 1000 * 1000, 1);
+  launch_incr_array(10 * 1000 * 1000, 1);
 }
 }

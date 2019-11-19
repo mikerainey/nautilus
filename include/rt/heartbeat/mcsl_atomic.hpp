@@ -6,6 +6,10 @@
 
 #include "mcsl_cycles.hpp"
 
+extern "C" int printk(const char* fmt, ...);
+extern "C" void** nk_get_tid();
+#define HEARTBEAT_DEBUG(fmt, args...) printk("(%x) HEARTBEAT %s:%s:%d: " fmt, nk_get_tid(),  __FILE__, __func__, __LINE__, ##args)
+
 namespace mcsl {
 namespace atomic {
 

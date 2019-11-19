@@ -210,8 +210,6 @@ public:
 
   static
   void launch(std::size_t nb_workers) {
-    perworker::unique_id::initialize(nb_workers);
-    perworker::unique_id::initialize_tls_worker(0);
     bool should_terminate = false;
     snzi_termination_detection_barrier<> termination_barrier;
     
