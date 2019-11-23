@@ -296,23 +296,21 @@ public:
       t = nk_thread_fork();
       //assert(t != NK_BAD_THREAD_ID);
       if (t == 0) { // child thread
-	HEARTBEAT_DEBUG("child %d\n",i);
+        //	HEARTBEAT_DEBUG("child %d\n",i);
 	perworker::unique_id::initialize_tls_worker(i);
 	termination_barrier.set_active(true);
 	worker_loop();
 	nk_thread_exit(0);
 	return;
       } else {
-		HEARTBEAT_DEBUG("parent %d\n",i);
+        //		HEARTBEAT_DEBUG("parent %d\n",i);
 	// parent; goes on to fork again
       }
     }
     worker_loop();
-    HEARTBEAT_DEBUG("before join\n");
     if (nk_join_all_children(0)) {
       assert(false); // there was a problem
     }
-        HEARTBEAT_DEBUG("after join\n");
     nk_sched_reap(1); // clean up unconditionally
   }
 
