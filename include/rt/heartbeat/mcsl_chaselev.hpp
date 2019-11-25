@@ -294,16 +294,13 @@ public:
     nk_thread_id_t t;
     for (std::size_t i = 1; i < nb_workers; i++) {
       t = nk_thread_fork();
-      //assert(t != NK_BAD_THREAD_ID);
       if (t == 0) { // child thread
-        //	HEARTBEAT_DEBUG("child %d\n",i);
 	perworker::unique_id::initialize_tls_worker(i);
 	termination_barrier.set_active(true);
 	worker_loop();
 	nk_thread_exit(0);
 	return;
       } else {
-        //		HEARTBEAT_DEBUG("parent %d\n",i);
 	// parent; goes on to fork again
       }
     }
@@ -311,7 +308,7 @@ public:
     if (nk_join_all_children(0)) {
       assert(false); // there was a problem
     }
-    nk_sched_reap(1); // clean up unconditionally
+    //    nk_sched_reap(1); // clean up unconditionally
   }
 
   static
