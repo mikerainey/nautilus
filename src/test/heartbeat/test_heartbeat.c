@@ -25,7 +25,7 @@ long fib(long n) {
 
 void worker(long n) {
   long r = fib(n);
-  DEBUG("r=%d\n",r);
+  //INFO("r=%d\n",r);
 }
 
 void simple_fj(int nb_workers, long n) {
@@ -42,7 +42,7 @@ void simple_fj(int nb_workers, long n) {
   }
   worker(n);
   nk_join_all_children(0);
-  DEBUG("completed\n");
+  INFO("completed\n");
 }
 
 void test_launch_incr_array();
@@ -50,8 +50,8 @@ void test_launch_incr_array();
 int test_heartbeat (void) {
   INFO("Starting simple test of heartbeat\n");
   //  test_threads(); // uncomment this line to run tests for nautilus threads
-  simple_fj(2, 20);
-  //  test_launch_incr_array();
+  simple_fj(4, 20);
+  //test_launch_incr_array();
   return 0;
 }
 
