@@ -14,14 +14,6 @@ uint64_t kappa_usec;
 
 uint64_t kappa_cycles;
 
-using heartbeat_mechanism_type = enum heartbeat_mechanism_type {
-  heartbeat_mechanism_software_polling,
-  heartbeat_mechanism_interrupt,
-  heartbeat_mechanism_interrupt_pthread,
-  heartbeat_mechanism_interrupt_papi,
-  heartbeat_mechanism_noop,
-};
-
 /*---------------------------------------------------------------------*/
 /* Stats */
 
@@ -230,9 +222,6 @@ public:
 class noop_scheduler_configuration {
 public:
   
-  static constexpr
-  heartbeat_mechanism_type heartbeat_mechanism = heartbeat_mechanism_noop;
-
   static
   void initialize_worker() {
   }  

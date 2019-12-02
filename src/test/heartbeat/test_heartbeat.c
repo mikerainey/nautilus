@@ -15,14 +15,43 @@
 #define WARN(fmt, args...)  WARN_PRINT("TEST: " fmt, ##args)
 #define ERROR(fmt, args...) ERROR_PRINT("TEST: " fmt, ##args)
 
-//double mcsl_cycles_test();
+long fib(long n) {
+  if (n < 0) {
+    return n;
+  } else {
+    return fib(n-1) + fib(n-2);
+  }
+}
+
+void worker(long n) {
+  long r = fib(n);
+  DEBUG("r=%d\n",r);
+}
+
+void simple_fj(int nb_workers, long n) {
+  nk_thread_id_t t;
+  for (int i = 1; i < nb_workers; i++) {
+    t = nk_thread_fork();    
+    if (t == 0) { // child thread
+      worker(n);
+      nk_thread_exit(0);
+      return;
+    } else {
+      // parent; goes on to fork again
+    }
+  }
+  worker(n);
+  nk_join_all_children(0);
+  DEBUG("completed\n");
+}
+
 void test_launch_incr_array();
 
 int test_heartbeat (void) {
-  //  INFO("x=%f", mcsl_cycles_test());
   INFO("Starting simple test of heartbeat\n");
   //  test_threads(); // uncomment this line to run tests for nautilus threads
-  test_launch_incr_array();
+  simple_fj(2, 20);
+  //  test_launch_incr_array();
   return 0;
 }
 
