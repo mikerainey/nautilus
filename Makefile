@@ -399,6 +399,7 @@ endif
 #
 
 CXXFLAGS := $(COMMON_FLAGS) \
+			--std=c++17 \
 			-fno-exceptions \
 			-fno-rtti 
 

@@ -1,5 +1,5 @@
 #include <nautilus/nautilus.h>
-#include <rt/heartbeat/heartbeat.h>
+//#include <rt/heartbeat/heartbeat.h>
 #include <nautilus/thread.h>
 #include <assert.h>
 
@@ -12,9 +12,40 @@
 #define ERROR(fmt, args...) ERROR_PRINT("heartbeat: " fmt, ##args)
 #define INFO(fmt, args...) INFO_PRINT("heartbeat: " fmt, ##args)
 
+long fib(long n) {
+  if (n <= 1) {
+    return n;
+  } else {
+    return fib(n-1) + fib(n-2);
+  }
+}
+
+void worker(long n) {
+  //  INFO("worker\n");
+  long r = fib(n);
+  //  INFO("n=%ld r=%ld\n",n,r);
+}
+
+static void parallel_start_wrapper(void *in, void **out) {
+  worker((long)in);
+}  
+
+void simple_fj(int nb_workers, long n) {
+  for (int i = 1; i < nb_workers; i++) {
+    nk_thread_start(parallel_start_wrapper,
+                    (void*)n,0,0,TSTACK_DEFAULT,0,-1);
+  }
+  nk_join_all_children(0);
+  //  INFO("completed\n");
+}
+
+void microbench();
+
 void nk_heartbeat_init() {
-      printk("heartbeat!!!!\n");
-    INFO("inited\n");
+  printk("heartbeat!!!!\n");
+  microbench();
+  //  simple_fj(4, 20);
+  INFO("heartbeat exiting\n");
 }
 
 void nk_heartbeat_deinit() {

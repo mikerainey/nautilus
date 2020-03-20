@@ -1,1 +1,1 @@
-obj-y += heartbeat.o
+obj-y += heartbeat.o microbench.o # hbt.o

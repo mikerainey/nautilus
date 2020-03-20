@@ -1,32 +1,57 @@
-#ifndef MCSL_CHASELEV_H_
-#define MCSL_CHASELEV_H_
+#pragma once
 
 #include <memory>
 #include <assert.h>
 #include <deque>
+#include <functional>
 
-#include "mcsl_atomic.hpp"
-#include "mcsl_perworker.hpp"
-#include "mcsl_random.hpp"
 #include "mcsl_stats.hpp"
-#include "mcsl_snzi.hpp"
+#include "mcsl_logging.hpp"
 
+/*---------------------------------------------------------------------*/
+/* Nautilus compatibility */
+
+namespace std {void __throw_bad_function_call() { while(1); }; }
+
+void operator delete(void * p, std::size_t) // or delete(void *, std::size_t)
+{
+  std::free(p);
+}
+
+typedef uint64_t nk_stack_size_t;
 typedef void* nk_thread_id_t;
+typedef void (*nk_thread_fun_t)(void * input, void ** output);
 
 extern "C"
-nk_thread_id_t nk_thread_fork(void);
+int
+nk_thread_start (nk_thread_fun_t fun, 
+                 void * input,
+                 void ** output,
+                 uint8_t is_detached,
+                 nk_stack_size_t stack_size,
+                 nk_thread_id_t * tid,
+                 int bound_cpu); // -1 => not bound
 
 extern "C"
-int nk_join_all_children(int (*output_consumer)(void *output));
+void nk_join_all_children(int);
 
-extern "C"
-void nk_sched_reap(int);
+#define TSTACK_DEFAULT 0  // will be 4K
 
-extern "C"
-void nk_yield();
+static
+void nk_thread_init_fn(void *in, void **out) {
+  std::function<void()>* fp = (std::function<void()>*)in;
+  (*fp)();
+  delete fp;
+}
 
-extern "C"
-void nk_thread_exit(int);
+void thread(const std::function<void()>& f) {
+  auto fp = new std::function<void()>(f);
+  nk_thread_start(nk_thread_init_fn, (void*)fp,0,0,TSTACK_DEFAULT,0,-1);
+}
+
+void join_all() {
+  nk_join_all_children(0);
+}
 
 namespace mcsl {
   
@@ -156,9 +181,11 @@ using fiber_status_type = enum fiber_status_enum {
   fiber_status_terminate
 };
 
+using random_number_seed_type = uint64_t;
+  
 template <typename Scheduler_configuration,
 	  template <typename> typename Fiber,
-	  typename Stats>
+	  typename Stats, typename Logging>
 class chase_lev_work_stealing_scheduler {
 private:
 
@@ -175,11 +202,18 @@ private:
   perworker::array<buffer_type> buffers;
 
   static
-  random::rng_array_type random_number_generators;
+  perworker::array<random_number_seed_type> random_number_generators;
 
   static
-  std::size_t random_other_worker(size_t my_id) {
-    return random::other_worker(my_id, random_number_generators);
+  std::size_t random_other_worker(size_t nb_workers, size_t my_id) {
+    assert(nb_workers != 1);
+    auto& rn = random_number_generators.mine();
+    auto id = (std::size_t)(rn % (nb_workers - 1));
+    if (id >= my_id) {
+      id++;
+    }
+    rn = hash(rn);
+    return id;
   }
 
   static
@@ -188,7 +222,7 @@ private:
     auto& my_deque = deques.mine();
     fiber_type* current = nullptr;
     if (my_buffer.empty()) {
-      return current;
+      return nullptr;
     }
     current = my_buffer.back();
     my_buffer.pop_back();
@@ -197,24 +231,18 @@ private:
       my_buffer.pop_front();
       my_deque.push(f);
     }
-    assert(current != nullptr);
+    assert(my_buffer.empty());
     return current;
   }
 
+  using termination_detection_barrier_type = typename Scheduler_configuration::termination_detection_barrier_type;
+  
 public:
-
-  static
-  void commit() {
-    auto f = flush();
-    if (f != nullptr) {
-      deques.mine().push(f);
-    }
-  }
 
   static
   void launch(std::size_t nb_workers) {
     bool should_terminate = false;
-    snzi_termination_detection_barrier<> termination_barrier;
+    termination_detection_barrier_type termination_barrier;
     
     using scheduler_status_type = enum scheduler_status_enum {
       scheduler_status_active,
@@ -226,13 +254,13 @@ public:
         termination_barrier.set_active(false);
         return scheduler_status_finish;
       }
+      Logging::log_event(enter_wait);
       auto sa = Stats::on_enter_acquire();
       termination_barrier.set_active(false);
       auto my_id = perworker::unique_id::get_my_id();
       fiber_type* current = nullptr;
       while (current == nullptr) {
-	nk_yield();
-        auto k = random_other_worker(my_id);
+        auto k = random_other_worker(nb_workers, my_id);
         if (! deques[k].empty()) {
           termination_barrier.set_active(true);
           current = deques[k].steal();
@@ -245,12 +273,14 @@ public:
         if (termination_barrier.is_terminated() || should_terminate) {
           assert(current == nullptr);
           Stats::on_exit_acquire(sa);
+          Logging::log_event(exit_wait);
           return scheduler_status_finish;
         }
       }
       assert(current != nullptr);
       buffers.mine().push_back(current);
       Stats::on_exit_acquire(sa);
+      Logging::log_event(exit_wait);
       return scheduler_status_active;
     };
 
@@ -264,7 +294,7 @@ public:
         while ((current != nullptr) || ! my_deque.empty()) {
           current = (current == nullptr) ? my_deque.pop() : current;
           if (current != nullptr) {
-            auto s = current->run();
+            auto s = current->exec();
             if (s == fiber_status_continue) {
               buffers.mine().push_back(current);
             } else if (s == fiber_status_pause) {
@@ -282,72 +312,101 @@ public:
         assert((current == nullptr) && my_deque.empty());
         status = acquire();
       }
+      { /*
+        std::unique_lock<std::mutex> lk(exit_lock);
+        auto nb = ++nb_workers_exited;
+        if (perworker::unique_id::get_my_id() == 0) {
+          exit_condition_variable.wait(lk, [&] { return nb_workers_exited == nb_workers; });
+        } else if (nb == nb_workers) {
+          exit_condition_variable.notify_one();
+          } */
+      }
     };
 
     for (std::size_t i = 0; i < random_number_generators.size(); ++i) {
-      random_number_generators[i] = random::seed(i);
+      random_number_generators[i] = hash(i);
     }
 
     Scheduler_configuration::initialize_signal_handler();
 
     termination_barrier.set_active(true);
-    nk_thread_id_t t;
     for (std::size_t i = 1; i < nb_workers; i++) {
-      t = nk_thread_fork();
-      if (t == 0) { // child thread
-	perworker::unique_id::initialize_tls_worker(i);
-	termination_barrier.set_active(true);
-	worker_loop();
-	nk_thread_exit(0);
-	return;
-      } else {
-	// parent; goes on to fork again
-      }
+      thread([&] {
+        termination_barrier.set_active(true);
+        worker_loop();
+      });
+      //pthreads[i] = t.native_handle();
+      //t.detach();
     }
+    //pthreads[0] = pthread_self();
+    Logging::log_event(enter_algo);
     worker_loop();
-    if (nk_join_all_children(0)) {
-      assert(false); // there was a problem
-    }
-    //    nk_sched_reap(1); // clean up unconditionally
+    Logging::log_event(exit_algo);
   }
 
+  static
+  fiber_type* take() {
+    auto& my_buffer = buffers.mine();
+    auto& my_deque = deques.mine();
+    fiber_type* current = nullptr;
+    assert(my_buffer.empty());
+    current = my_deque.pop();
+    if (current != nullptr) {
+      my_buffer.push_back(current);
+    }
+    return current;
+  }
+  
   static
   void schedule(fiber_type* f) {
     assert(f->is_ready());
     buffers.mine().push_back(f);
   }
-  
+
+  static
+  void commit() {
+    auto f = flush();
+    if (f != nullptr) {
+      deques.mine().push(f);
+    }
+  }
+
 };
 
 template <typename Scheduler_configuration,
-	template <typename> typename Fiber,
-	typename Stats>
-perworker::array<typename chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::cl_deque_type> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::deques;
+          template <typename> typename Fiber,
+          typename Stats, typename Logging>
+perworker::array<typename chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::cl_deque_type> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::deques;
 
 template <typename Scheduler_configuration,
-	template <typename> typename Fiber,
-	typename Stats>
-perworker::array<typename chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::buffer_type> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::buffers;
+          template <typename> typename Fiber,
+          typename Stats, typename Logging>
+perworker::array<typename chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::buffer_type> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::buffers;
 
 template <typename Scheduler_configuration,
-	template <typename> typename Fiber,
-	typename Stats>
-random::rng_array_type chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::random_number_generators;
+          template <typename> typename Fiber,
+          typename Stats, typename Logging>
+perworker::array<random_number_seed_type> chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::random_number_generators;
 
 template <typename Scheduler_configuration,
 	  template <typename> typename Fiber,
-	  typename Stats>
+	  typename Stats, typename Logging>
+Fiber<Scheduler_configuration>* take() {
+  return chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::take();  
+}
+
+template <typename Scheduler_configuration,
+	  template <typename> typename Fiber,
+	  typename Stats, typename Logging>
 void schedule(Fiber<Scheduler_configuration>* f) {
-  chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::schedule(f);  
+  chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::schedule(f);  
 }
 
 template <typename Scheduler_configuration,
 	  template <typename> typename Fiber,
-	  typename Stats>
+	  typename Stats, typename Logging>
 void commit() {
-  chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats>::commit();
+  chase_lev_work_stealing_scheduler<Scheduler_configuration,Fiber,Stats,Logging>::commit();
 }
-
+  
 } // end namespace
-
-#endif
