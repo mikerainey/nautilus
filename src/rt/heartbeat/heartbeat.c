@@ -1,5 +1,5 @@
 #include <nautilus/nautilus.h>
-//#include <rt/heartbeat/heartbeat.h>
+#include <nautilus/shell.h>
 #include <nautilus/thread.h>
 #include <assert.h>
 
@@ -12,45 +12,27 @@
 #define ERROR(fmt, args...) ERROR_PRINT("heartbeat: " fmt, ##args)
 #define INFO(fmt, args...) INFO_PRINT("heartbeat: " fmt, ##args)
 
-long fib(long n) {
-  if (n <= 1) {
-    return n;
-  } else {
-    return fib(n-1) + fib(n-2);
-  }
-}
-
-void worker(long n) {
-  //  INFO("worker\n");
-  long r = fib(n);
-  //  INFO("n=%ld r=%ld\n",n,r);
-}
-
-static void parallel_start_wrapper(void *in, void **out) {
-  worker((long)in);
-}  
-
-void simple_fj(int nb_workers, long n) {
-  for (int i = 1; i < nb_workers; i++) {
-    nk_thread_start(parallel_start_wrapper,
-                    (void*)n,0,0,TSTACK_DEFAULT,0,-1);
-  }
-  nk_join_all_children(0);
-  //  INFO("completed\n");
-}
+/*---------------------------------------------------------------------*/
 
 void microbench();
 
-void nk_heartbeat_init() {
-  printk("heartbeat!!!!\n");
+static
+int handle_heartbeat_fib(char *buf, void *priv) {
   microbench();
-  //  simple_fj(4, 20);
-  INFO("heartbeat exiting\n");
+  return 0;
 }
 
-void nk_heartbeat_deinit() {
-    INFO("deinited\n");
-}
+static
+struct shell_cmd_impl heartbeat_fib = {
+  .cmd      = "heartbeat_fib",
+  .help_str = "heartbeat_fib",
+  .handler  = handle_heartbeat_fib,
+};
+
+nk_register_shell_cmd(heartbeat_fib);
+
+/*---------------------------------------------------------------------*/
+/* Registry of nautilus thread-local storage for heartbeat runtime */
 
 static
 nk_tls_key_t unique_id_key;
@@ -73,4 +55,16 @@ void nk_heartbeat_set_unique_id(unsigned id) {
 
 unsigned nk_heartbeat_read_unique_id() {
   return *((unsigned*)nk_tls_get(unique_id_key));
+}
+
+/*---------------------------------------------------------------------*/
+/* Heartbeat runtime init (called at boot time by init.c) */
+// for now, we won't be using this mechanism, but instead will use the shell registry, above
+
+void nk_heartbeat_init() {
+
+}
+
+void nk_heartbeat_deinit() { 
+
 }

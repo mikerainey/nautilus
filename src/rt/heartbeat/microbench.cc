@@ -183,8 +183,7 @@ void launch(std::size_t nb_workers) {
   perworker::unique_id::initialize_tls_worker(0);
   logging::initialize();
   {
-    //auto f_body = new fiber<Scheduler_configuration>([=] (promotable*) { aprintf("body\n"); });
-    auto f_body = new fib_fiber<Scheduler_configuration>(30, &res);
+    auto f_body = new fib_fiber<Scheduler_configuration>(33, &res);
     auto f_cont = new fiber<Scheduler_configuration>([=] (promotable*)  {
       elapsed_time = mcsl::clock::since(start_time);
     });
@@ -208,6 +207,9 @@ void launch(std::size_t nb_workers) {
 }
 
 } // end namespace
+
+/*---------------------------------------------------------------------*/
+/* Fills some C++ stdlib functions that cannot be linked w/ Nautilus */
 
 namespace std {void __throw_bad_alloc() { while(1); }; }
 namespace std { void __throw_length_error(char const*) { }}
