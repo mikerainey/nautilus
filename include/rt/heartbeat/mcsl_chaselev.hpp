@@ -11,13 +11,6 @@
 /*---------------------------------------------------------------------*/
 /* Nautilus compatibility */
 
-namespace std {void __throw_bad_function_call() { while(1); }; }
-
-void operator delete(void * p, std::size_t) // or delete(void *, std::size_t)
-{
-  std::free(p);
-}
-
 typedef uint64_t nk_stack_size_t;
 typedef void* nk_thread_id_t;
 typedef void (*nk_thread_fun_t)(void * input, void ** output);
@@ -284,7 +277,7 @@ public:
       return scheduler_status_active;
     };
 
-    auto worker_loop = [&] {
+    auto worker_loop = [&] (std::size_t i) {
       Scheduler_configuration::initialize_worker();
       auto& my_deque = deques.mine();
       scheduler_status_type status = scheduler_status_active;
@@ -332,15 +325,16 @@ public:
     termination_barrier.set_active(true);
     for (std::size_t i = 1; i < nb_workers; i++) {
       thread([&] {
+        perworker::unique_id::initialize_tls_worker(i);
         termination_barrier.set_active(true);
-        worker_loop();
+        worker_loop(i);
       });
       //pthreads[i] = t.native_handle();
       //t.detach();
     }
     //pthreads[0] = pthread_self();
     Logging::log_event(enter_algo);
-    worker_loop();
+    worker_loop(0);
     Logging::log_event(exit_algo);
   }
 

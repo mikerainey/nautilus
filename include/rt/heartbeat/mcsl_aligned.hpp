@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <memory>
 
+#include "mcsl_util.hpp"
+
 #ifndef MCSL_CACHE_LINE_SZB
 #define MCSL_CACHE_LINE_SZB 128
 #endif
