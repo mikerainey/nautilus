@@ -80,6 +80,22 @@ public:
     dst->incounter++;
   }
 
+  virtual
+  void notify() {
+    assert(is_ready());
+    auto fo = outedge;
+    outedge = nullptr;
+    if (fo != nullptr) {
+      fo->release();
+    }
+  }
+
+  virtual
+  void finish() {
+    notify();
+    delete this;
+  }
+
   void async_finish_promote(std::function<void(promotable*)> body) {
     auto b = new fiber(body);
     add_edge(b, outedge);
