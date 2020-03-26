@@ -115,7 +115,7 @@ public:
 /*---------------------------------------------------------------------*/
 /* Scheduler launch */
 
-int64_t fib_T = 15;
+int64_t fib_T = 8;
 
 int64_t fib_seq(int64_t n) {
   if (n <= 1) {
@@ -233,7 +233,7 @@ void operator delete(void * p, std::nothrow_t const&) {
 
 extern "C" {
   void microbench() {
-    std::size_t nb_workers = 4;
+    std::size_t nb_workers = 8;
     mcsl::launch<mcsl::basic_scheduler_configuration>(nb_workers);
   }
 }
