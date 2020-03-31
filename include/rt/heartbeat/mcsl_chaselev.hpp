@@ -50,38 +50,47 @@ namespace mcsl {
   
 /*---------------------------------------------------------------------*/
 /* Chase-Lev Work-Stealing Deque data structure  */
+/* 
+ * based on the implementation of https://gist.github.com/Amanieu/7347121
+ *
+ * Dynamic Circular Work-Stealing Deque
+ * http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.170.1097&rep=rep1&type=pdf
+ *
+ * Correct and Efﬁcient Work-Stealing for Weak Memory Models
+ * http://www.di.ens.fr/~zappa/readings/ppopp13.pdf
+ */
+  
+template <typename Fiber>
+class chase_lev_deque {
 
-template <typename T>
-class chaselev_deque {
-private:
-    
+  using index_type = long;
+  
   class circular_array {
   private:
-
-    cache_aligned_array<std::atomic<T*>> items;
-
+    
+    cache_aligned_array<std::atomic<Fiber*>> items;
     std::unique_ptr<circular_array> previous;
 
   public:
-
-    circular_array(std::size_t size) : items(size) { }
-
-    std::size_t size() const {
+    
+    circular_array(index_type n) : items(n) {}
+    
+    index_type size() const {
       return items.size();
     }
-
-    T* get(std::size_t i) {
-      return items[i & (size() - 1)].load(std::memory_order_relaxed);
+    
+    Fiber* get(index_type index) {
+      return items[index % size()].load(std::memory_order_relaxed);
     }
-
-    void put(std::size_t i, T* x) {
-      items[i & (size() - 1)].store(x, std::memory_order_relaxed);
+    
+    void put(index_type index, Fiber* x) {
+      items[index % size()].store(x, std::memory_order_relaxed);
     }
-
-    circular_array* grow(std::size_t top, std::size_t bottom) {
+    
+    circular_array* grow(index_type top, index_type bottom) {
       circular_array* new_array = new circular_array(size() * 2);
       new_array->previous.reset(this);
-      for (auto i = top; i != bottom; ++i) {
+      for (index_type i = top; i != bottom; ++i) {
         new_array->put(i, get(i));
       }
       return new_array;
@@ -90,33 +99,34 @@ private:
   };
 
   std::atomic<circular_array*> array;
-  
-  std::atomic<std::size_t> top, bottom;
+  std::atomic<index_type> top, bottom;
 
 public:
-
-  chaselev_deque()
-    : array(new circular_array(32)), top(0), bottom(0) { }
-
-  ~chaselev_deque() {
-    auto p = array.load(std::memory_order_relaxed);
+  
+  chase_lev_deque()
+    : array(new circular_array(1024)), top(0), bottom(0) {}
+  
+  ~chase_lev_deque() {
+    circular_array* p = array.load(std::memory_order_relaxed);
     if (p) {
       delete p;
     }
   }
 
-  std::size_t size() {
-    return (std::size_t)bottom.load() - top.load();
+  index_type size() {
+    auto b = bottom.load(std::memory_order_relaxed);
+    auto t = top.load(std::memory_order_relaxed);
+    return b - t;
   }
 
   bool empty() {
     return size() == 0;
   }
 
-  void push(T* x) {
+  void push(Fiber* x) {
     auto b = bottom.load(std::memory_order_relaxed);
     auto t = top.load(std::memory_order_acquire);
-    auto a = array.load(std::memory_order_relaxed);
+    circular_array* a = array.load(std::memory_order_relaxed);
     if (b - t > a->size() - 1) {
       a = a->grow(t, b);
       array.store(a, std::memory_order_relaxed);
@@ -126,14 +136,14 @@ public:
     bottom.store(b + 1, std::memory_order_relaxed);
   }
 
-  T* pop() {
+  Fiber* pop() {
     auto b = bottom.load(std::memory_order_relaxed) - 1;
-    auto a = array.load(std::memory_order_relaxed);
+    circular_array* a = array.load(std::memory_order_relaxed);
     bottom.store(b, std::memory_order_relaxed);
     std::atomic_thread_fence(std::memory_order_seq_cst);
     auto t = top.load(std::memory_order_relaxed);
     if (t <= b) {
-      T* x = a->get(b);
+      auto x = a->get(b);
       if (t == b) {
         if (!top.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed)) {
           x = nullptr;
@@ -147,13 +157,13 @@ public:
     }
   }
 
-  T* steal() {
+  Fiber* steal() {
     auto t = top.load(std::memory_order_acquire);
     std::atomic_thread_fence(std::memory_order_seq_cst);
     auto b = bottom.load(std::memory_order_acquire);
-    T* x = nullptr;
+    Fiber* x = nullptr;
     if (t < b) {
-      auto a = array.load(std::memory_order_relaxed);
+      circular_array* a = array.load(std::memory_order_relaxed);
       x = a->get(t);
       if (!top.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed)) {
         return nullptr;
@@ -161,7 +171,7 @@ public:
     }
     return x;
   }
-
+  
 };
 
 /*---------------------------------------------------------------------*/
@@ -184,7 +194,7 @@ private:
 
   using fiber_type = Fiber<Scheduler_configuration>;
 
-  using cl_deque_type = chaselev_deque<fiber_type>;
+  using cl_deque_type = chase_lev_deque<fiber_type>;
 
   using buffer_type = std::deque<fiber_type*>;
 
