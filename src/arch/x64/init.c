@@ -68,6 +68,7 @@
 #include <nautilus/pmc.h>
 #include <nautilus/prog.h>
 #include <nautilus/cmdline.h>
+#include <nautilus/nemo.h>
 #include <test/test.h>
 
 #ifdef NAUT_CONFIG_ASPACES
@@ -547,6 +548,8 @@ init (unsigned long mbd,
     nk_prog_init(naut);
 
     nk_loader_init();
+
+    nk_nemo_init();
 
     nk_pmc_init(naut);
 

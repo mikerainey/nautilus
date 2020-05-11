@@ -894,7 +894,7 @@ time_syscall (void)
 static uint64_t nemo_end = 0;
 static volatile int nemo_done = 0;
 static void
-nemo_wakeup (void)
+nemo_wakeup (excp_entry_t * e, void * priv)
 {
     rdtscll(nemo_end);
     nemo_done = 1;
@@ -907,9 +907,7 @@ time_nemo_event (void)
     unsigned i,j;
     uint64_t start;
 
-    nemo_init();
-
-    nemo_event_id_t id = nemo_register_event_action(nemo_wakeup, NULL);
+    nemo_event_id_t id = nk_nemo_register_event_action(nemo_wakeup, NULL);
 
     if (id < 0) {
         printk("couldn't register test nemo task\n");
@@ -924,7 +922,7 @@ time_nemo_event (void)
 
             rdtscll(start);
 
-            nemo_event_notify(id, i);
+            nk_nemo_event_notify(id, i);
 
             while (!nemo_done);
 
@@ -942,7 +940,7 @@ time_nemo_event (void)
 
 
 static void
-nemo_bcast_wakeup (void)
+nemo_bcast_wakeup (excp_entry_t * e, void * priv)
 {
     uint64_t tmp;
     rdtscll(tmp);
@@ -958,15 +956,13 @@ time_nemo_bcast (void)
     unsigned i;
     uint64_t start;
 
-    nemo_init();
-
-    nemo_event_id_t id = nemo_register_event_action(nemo_bcast_wakeup, NULL);
+    nemo_event_id_t id = nk_nemo_register_event_action(nemo_bcast_wakeup, NULL);
 
     for (i = 0; i < TRIALS; i++) {
 
         rdtscll(start);
 
-        nemo_event_broadcast(id);
+        nk_nemo_event_broadcast(id);
 
         cores_wait();
 
