@@ -1343,18 +1343,9 @@ menu "Runtimes"
 	  help
 	      Include the GOMP-compatible OpenMP run-time
 
-        choice
-	    depends on OPENMP_RT
-            prompt "OpenMP RT"
-            default OPENMP_RT_OMP
-
-          config OPENMP_RT_OMP
-              bool "CLANG-compatible (OMP)"
-
-          config OPENMP_RT_GOMP
-              bool "GNU-compatible (GOMP) [going away]"
-
-        endchoice
+        config OPENMP_RT_OMP
+            default n
+            bool "CLANG-compatible (OMP)"
 	
         config OPENMP_RT_DEBUG
             bool "Debug OpenMP RT";
@@ -1375,6 +1366,26 @@ menu "Runtimes"
 	    default y
             help 
               Racket support (via Multiverse only - no special code)
+
+        config HEARTBEAT_RT
+          bool  "HEARTBEAT RT"
+          depends on CXX_SUPPORT
+	  help
+	     Include the HEARTBEAT run-time
+
+        config HEARTBEAT_RT_DEBUG
+            bool "Debug HEARTBEAT RT";
+	    default n
+            depends on HEARTBEAT_RT
+            help 
+              Debugging output for the HEARTBEAT RT
+
+        config HEARTBEAT_RT_TESTS
+            bool "Include tests/benchmarks for HEARTBEAT RT";
+	    default n
+            depends on HEARTBEAT_RT
+            help 
+              Include HEARTBEAT simple tests 
 
 endmenu
 

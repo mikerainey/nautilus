@@ -2349,6 +2349,7 @@ struct nk_thread *_sched_need_resched(int have_lock, int force_resched)
 	// the highest priority aperiodic thread that is runnable
 	rt_n = GET_NEXT_APERIODIC(scheduler);
 	if (rt_n == NULL) {
+	  ERROR("error\n"); // just for temporary debugging purposes -- Mike
 	    goto panic_no_aperiodic;
 	}
 	//DEBUG("Found aperiodic thread %llu (priority %llu)\n",rt_n->thread->tid,rt_n->constraints.aperiodic.priority);

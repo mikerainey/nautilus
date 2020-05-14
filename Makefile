@@ -399,8 +399,10 @@ endif
 #
 
 CXXFLAGS := $(COMMON_FLAGS) \
+			--std=c++17 \
 			-fno-exceptions \
-			-fno-rtti 
+			-fno-rtti \
+		        -fcheck-new
 
 CFLAGS:=   $(COMMON_FLAGS) \
 		   -Wall \
@@ -615,6 +617,8 @@ endif # NAUT_CONFIG_CXX_SUPPORT
 			   #/usr/lib64/libsupc++.a \
 
 			   #/usr/lib64/libc.a \
+
+#LDFLAGS += -L $(CPP_LD_LIBRARY_PATH) -lstdc++
 
 ifdef NAUT_CONFIG_PALACIOS
   PALACIOS_DIR=$(subst ",,$(NAUT_CONFIG_PALACIOS_DIR))
