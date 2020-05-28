@@ -8,14 +8,14 @@
  * led by Sandia National Laboratories that includes several national 
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
- * http://xtack.sandia.gov/hobbes
+ * http://xstack.sandia.gov/hobbes
  *
- * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
+ * Copyright (c) 2015, Kyle C. Hale <khale@cs.iit.edu>
  * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
- * Author: Kyle C. Hale <kh@u.northwestern.edu>
+ * Author: Kyle C. Hale <khale@cs.iit.edu>
  *
  * This is free software.  You are permitted to use,
  * redistribute, and modify it as specified in the file "LICENSE.txt".
@@ -27,8 +27,7 @@
 #define NEMO_MAX_EVENTS 1024
 #define NEMO_INT_VEC    0xe8
 
-
-typedef void (*nemo_action_t)(void);
+typedef void (*nemo_action_t)(struct excp_entry_state *, void * priv);
 
 typedef int nemo_event_id_t;
 
@@ -39,12 +38,12 @@ typedef struct nemo_event {
 } nemo_event_t;
 
 
-int nemo_init(void);
-nemo_event_id_t nemo_register_event_action(void (*func)(void), void * priv_data);
-void nemo_unregister_event_action(nemo_event_id_t eid);
-void nemo_event_notify(nemo_event_id_t eid, int cpu);
-void nemo_event_broadcast(nemo_event_id_t eid);
-void nemo_event_await(void);
+int nk_nemo_init(void);
+nemo_event_id_t nk_nemo_register_event_action(nemo_action_t func, void * priv_data);
+void nk_nemo_unregister_event_action(nemo_event_id_t eid);
+void nk_nemo_event_notify(nemo_event_id_t eid, int cpu);
+void nk_nemo_event_broadcast(nemo_event_id_t eid);
+void nk_nemo_event_await(void);
 
 
 
