@@ -8,14 +8,14 @@
  * led by Sandia National Laboratories that includes several national 
  * laboratories and universities. You can find out more at:
  * http://www.v3vee.org  and
- * http://xtack.sandia.gov/hobbes
+ * http://xstack.sandia.gov/hobbes
  *
- * Copyright (c) 2015, Kyle C. Hale <kh@u.northwestern.edu>
+ * Copyright (c) 2015, Kyle C. Hale <khale@cs.iit.edu>
  * Copyright (c) 2015, The V3VEE Project  <http://www.v3vee.org> 
  *                     The Hobbes Project <http://xstack.sandia.gov/hobbes>
  * All rights reserved.
  *
- * Author: Kyle C. Hale <kh@u.northwestern.edu>
+ * Author: Kyle C. Hale <khale@cs.iit.edu>
  *
  * This is free software.  You are permitted to use,
  * redistribute, and modify it as specified in the file "LICENSE.txt".
@@ -27,11 +27,16 @@
 #include <nautilus/irq.h>
 #include <nautilus/mm.h>
 #include <nautilus/naut_assert.h>
+#include <nautilus/naut_string.h>
+#include <nautilus/shell.h>
+#include <nautilus/cmdline.h>
+#include <nautilus/vc.h>
+#include <test/test.h>
 
 #include <dev/apic.h>
 
 #define NEMO_DEBUG(fmt, args...) DEBUG_PRINT("NEMO: " fmt, ##args)
-#define NEMO_INFO(fmt, args...)  printk("NEMO: " fmt, ##args)
+#define NEMO_INFO(fmt, args...)  nk_vc_printf("NEMO: " fmt, ##args)
 #define NEMO_ERR(fmt, args...)   ERROR_PRINT("NEMO: " fmt, ##args)
 #define NEMO_WARN(fmt, args...)  WARN_PRINT("NEMO: " fmt, ##args)
 
@@ -64,9 +69,9 @@ nemo_ipi_event_recv (excp_entry_t * excp, excp_vec_t v, void *state)
 	ASSERT(event);
 	ASSERT(event->action);
 
-	NEMO_DEBUG("Recv'd notification for task id=%u func=%p\n", eid, (void*)event->action);
+	NEMO_DEBUG("Recv'd notification for task id=%u func=%p priv=%p\n", eid, (void*)event->action, event->priv_data);
 
-	event->action();
+	event->action(excp, event->priv_data);
 
 	IRQ_HANDLER_END();
 
@@ -75,7 +80,7 @@ nemo_ipi_event_recv (excp_entry_t * excp, excp_vec_t v, void *state)
 
 
 void
-nemo_event_notify (nemo_event_id_t eid, int cpu)
+nk_nemo_event_notify (nemo_event_id_t eid, int cpu)
 {
 	ASSERT(event_is_valid(eid));
 	ASSERT(cpu < NAUT_CONFIG_MAX_CPUS && cpu >= 0);
@@ -88,7 +93,7 @@ nemo_event_notify (nemo_event_id_t eid, int cpu)
 
 
 void
-nemo_event_broadcast (nemo_event_id_t eid)
+nk_nemo_event_broadcast (nemo_event_id_t eid)
 {
 	ASSERT(event_is_valid(eid));
 	struct apic_dev * apic = per_cpu_get(apic);
@@ -112,7 +117,7 @@ allocate_event_id (void)
 
 
 nemo_event_id_t
-nemo_register_event_action (void (*func)(void), void * priv_data)
+nk_nemo_register_event_action (nemo_action_t func, void * priv_data)
 {
 
 	if (!func) {
@@ -142,7 +147,7 @@ nemo_register_event_action (void (*func)(void), void * priv_data)
 
 	nemo_action_table[id] = new_event;
 
-	NEMO_DEBUG("Register new event %d func=%p data=%p\n", new_event->action, new_event->id, new_event->priv_data);
+	NEMO_DEBUG("Registering new event %d func=%p data=%p\n", new_event->id, new_event->action, new_event->priv_data);
 
 	return id;
 
@@ -153,7 +158,7 @@ out:
 
 
 void
-nemo_unregister_event_action (nemo_event_id_t id)
+nk_nemo_unregister_event_action (nemo_event_id_t id)
 {
 	ASSERT(id < NEMO_MAX_EVENTS && id >= 0);
 
@@ -169,16 +174,15 @@ nemo_unregister_event_action (nemo_event_id_t id)
 
 
 void
-nemo_event_await (void)
+nk_nemo_event_await (void)
 {
 	halt();
 }
 
 
 int
-nemo_init (void)
+nk_nemo_init (void)
 {
-
 	if (register_int_handler(NEMO_INT_VEC, nemo_ipi_event_recv, NULL) != 0) {
 		NEMO_ERR("Could not register Nemo interrupt handler\n");
 		return -1;
@@ -189,23 +193,38 @@ nemo_init (void)
 
 
 static void
-dummy (void)
+nemo_test_handler (excp_entry_t * e, void * priv)
 {
-	printk("TEST invoked from core %u!\n", my_cpu_id());
+    struct nk_virtual_console * vc = (struct nk_virtual_console*)priv;
+	nk_vc_printf_specific(vc, "TEST invoked from core %u\n", my_cpu_id());
 }
 
 
-void test_nemo (void);
-void 
-test_nemo (void)
+static int
+test_nemo (char * buf, void * priv)
 {
-	NEMO_INFO("Testing nemo\n");
-	nemo_init();
-	nemo_event_id_t id = nemo_register_event_action(dummy, NULL);
+	NEMO_INFO("Testing Nemo Event Subsystem\n");
+
+    struct nk_virtual_console * vc = get_cur_thread()->vc;
+
+	nemo_event_id_t id = nk_nemo_register_event_action(nemo_test_handler, vc);
+    cpu_id_t remote_core = 1;
+
 	if (id < 0) {
 		NEMO_ERR("Could not register dummy nemo task\n");
-		return;
+		return -1;
 	}
-	NEMO_INFO("Notifying event on core 22\n");
-	nemo_event_notify(id, 22);
+
+	//NEMO_INFO("Notifying event on core %d\n", remote_core);
+	nk_vc_printf_specific(vc, "Notifying event on core %d\n", remote_core);
+	nk_nemo_event_notify(id, remote_core);
+    return 0;
 }
+
+static struct shell_cmd_impl nemo_impl = {
+    .cmd      = "nemotest",
+    .help_str = "nemotest",
+    .handler  = test_nemo,
+};
+nk_register_shell_cmd(nemo_impl);
+
