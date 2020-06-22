@@ -86,7 +86,7 @@ void operator delete(void* p, unsigned long, std::align_val_t) {
 namespace tpalrts {
 
 void bench_incr_array() {
-  std::size_t nb_workers = 4;
+  std::size_t nb_workers = 3;
   mcsl::perworker::unique_id::initialize(nb_workers);
   rollforward_table = {
     mk_rollforward_entry(incr_array_interrupt_l0, incr_array_interrupt_rf_l0),
@@ -94,7 +94,7 @@ void bench_incr_array() {
     mk_rollforward_entry(incr_array_interrupt_l2, incr_array_interrupt_rf_l2),
     mk_rollforward_entry(incr_array_interrupt_l3, incr_array_interrupt_rf_l3),
   };
-  uint64_t nb_items = 2000000;
+  uint64_t nb_items = 40000000;
   int64_t* a = (int64_t*)malloc(sizeof(int64_t)*nb_items);
   auto bench_pre = [=] {
     for (int64_t i = 0; i < nb_items; i++) {
