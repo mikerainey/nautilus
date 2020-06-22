@@ -1387,6 +1387,26 @@ menu "Runtimes"
             help 
               Include HEARTBEAT simple tests 
 
+        config TPAL_RT
+          bool  "TPAL RT"
+          depends on CXX_SUPPORT
+	  help
+	     Include the TPAL run-time
+
+        config TPAL_RT_DEBUG
+            bool "Debug TPAL RT";
+	    default n
+            depends on TPAL_RT
+            help 
+              Debugging output for the TPAL RT
+
+        config TPAL_RT_TESTS
+            bool "Include tests/benchmarks for TPAL RT";
+	    default n
+            depends on TPAL_RT
+            help 
+              Include TPAL simple tests 
+
 endmenu
 
 source "src/dev/Kconfig"
