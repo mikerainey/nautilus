@@ -61,6 +61,10 @@ unsigned nk_mcsl_read_unique_id() {
 /* TPAL runtime init (called at boot time by init.c) */
 // for now, we won't be using this mechanism, but instead will use the shell registry, above
 
+int naut_my_cpu_id() {
+  return my_cpu_id();
+}
+
 nk_thread_t* naut_get_cur_thread() {
   return get_cur_thread();
 }
