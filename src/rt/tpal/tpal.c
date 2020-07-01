@@ -14,22 +14,57 @@
 #define ERROR(fmt, args...) ERROR_PRINT("tpal: " fmt, ##args)
 #define INFO(fmt, args...) INFO_PRINT("tpal: " fmt, ##args)
 
-void bench_incr_array();
+// Interrupt
+
+void handle_incr_array_interrupt(char *buf, void *priv);
 
 static
-int handle_tpal_incr_array(char *buf, void *priv) {
-  INFO("incr_array\n");
-  bench_incr_array();
-}
-
-static
-struct shell_cmd_impl tpal_incr_array = {
-  .cmd      = "incr",
-  .help_str = "incr",
-  .handler  = handle_tpal_incr_array,
+struct shell_cmd_impl tpal_incr_array_interrupt = {
+  .cmd      = "incr_array_interrupt",
+  .help_str = "",
+  .handler  = handle_incr_array_interrupt,
 };
 
-nk_register_shell_cmd(tpal_incr_array);
+nk_register_shell_cmd(tpal_incr_array_interrupt);
+
+// Manual
+
+void handle_incr_array_manual(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_incr_array_manual = {
+  .cmd      = "incr_array_manual",
+  .help_str = "",
+  .handler  = handle_incr_array_manual,
+};
+
+nk_register_shell_cmd(tpal_incr_array_manual);
+
+// Software polling
+
+void handle_incr_array_software_polling(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_incr_array_software_polling = {
+  .cmd      = "incr_array_software_polling",
+  .help_str = "",
+  .handler  = handle_incr_array_software_polling,
+};
+
+nk_register_shell_cmd(tpal_incr_array_software_polling);
+
+// Serial
+
+void handle_incr_array_serial(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_incr_array_serial = {
+  .cmd      = "incr_array_serial",
+  .help_str = "",
+  .handler  = handle_incr_array_serial,
+};
+
+nk_register_shell_cmd(tpal_incr_array_serial);
 
 /*---------------------------------------------------------------------*/
 /* Registry of nautilus thread-local storage for the mcsl runtime */
