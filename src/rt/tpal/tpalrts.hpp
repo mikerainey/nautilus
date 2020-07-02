@@ -18,6 +18,13 @@ void launch0(std::size_t nb_workers,
 	     const Bench_pre& bench_pre,
 	     const Bench_post& bench_post,
 	     Fiber_body f_body) {
+  nk_heartbeat_timer_ns = dflt_timer_ns;
+  {
+    double cpu_freq_ghz = 2.0; //mcsl::load_cpu_frequency_ghz();
+    kappa_usec = 100;
+    auto kappa_nsec = kappa_usec * 1000;
+    kappa_cycles = (uint64_t)(cpu_freq_ghz * kappa_nsec);
+  }
   mcsl::init_print_lock();
   bench_pre();
   logging::initialize();
@@ -30,6 +37,15 @@ void launch0(std::size_t nb_workers,
     auto f_cont = new fiber<Scheduler>([=] (promotable*) {
       finish_time = mcsl::clock::now();
       logging::log_event(mcsl::exit_algo);
+      {
+        uint64_t seconds = finish_time.tv_sec - start_time.tv_sec;
+        uint64_t ns = finish_time.tv_nsec - start_time.tv_nsec;
+        if (start_time.tv_nsec > finish_time.tv_nsec) { // clock underflow 
+          --seconds; 
+          ns += 1000000000; 
+        }
+        printk("exectime %lu.%09ld\n", seconds, ns);
+      }
       stats::report(nb_workers);
     });
     auto f_term = new terminal_fiber<Scheduler>();
@@ -44,16 +60,8 @@ void launch0(std::size_t nb_workers,
   using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
   scheduler_type::launch(nb_workers);
   bench_post();
-  {
-    uint64_t seconds = finish_time.tv_sec - start_time.tv_sec;
-    uint64_t ns = finish_time.tv_nsec - start_time.tv_nsec;
-    if (start_time.tv_nsec > finish_time.tv_nsec) { // clock underflow 
-      --seconds; 
-      ns += 1000000000; 
-    }
-    printk("exectime %lu.%09ld\n", seconds, ns);
-  }
   logging::output(nb_workers);
+  ping_thread_interrupt::ping_thread_status.store(ping_thread_status_active);
 }
 
 template <typename Scheduler, typename Worker, typename Interrupt,
