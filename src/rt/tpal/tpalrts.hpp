@@ -7,12 +7,11 @@
 
 namespace tpalrts {
 
+mcsl::clock::time_point_type start_time, finish_time;
+
 /*---------------------------------------------------------------------*/
 /* Launch */
-  
-mcsl::clock::time_point_type start_time;
-double elapsed_time;
-
+ 
 template <typename Scheduler, typename Worker, typename Interrupt,
           typename Bench_pre, typename Bench_post, typename Fiber_body>
 void launch0(std::size_t nb_workers,
@@ -26,10 +25,10 @@ void launch0(std::size_t nb_workers,
     auto f_pre = new fiber<Scheduler>([=] (promotable*) {
       stats::start_collecting();
       logging::log_event(mcsl::enter_algo);
-      start_time = mcsl::clock::now();                                        
+      start_time = mcsl::clock::now();
     });
     auto f_cont = new fiber<Scheduler>([=] (promotable*) {
-      elapsed_time = mcsl::clock::since(start_time);
+      finish_time = mcsl::clock::now();
       logging::log_event(mcsl::exit_algo);
       stats::report(nb_workers);
     });
@@ -45,7 +44,15 @@ void launch0(std::size_t nb_workers,
   using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
   scheduler_type::launch(nb_workers);
   bench_post();
-  printk("exectime %.3f\n", elapsed_time);
+  {
+    uint64_t seconds = finish_time.tv_sec - start_time.tv_sec;
+    uint64_t ns = finish_time.tv_nsec - start_time.tv_nsec;
+    if (start_time.tv_nsec > finish_time.tv_nsec) { // clock underflow 
+      --seconds; 
+      ns += 1000000000; 
+    }
+    printk("exectime %lu.%09ld\n", seconds, ns);
+  }
   logging::output(nb_workers);
 }
 
@@ -61,36 +68,3 @@ void launch(std::size_t nb_workers,
 }
   
 } // end namespace
-
-/*---------------------------------------------------------------------*/
-/* Fills some C++ stdlib functions that cannot be linked w/ Nautilus */
-
-namespace std {void __throw_bad_alloc() { while(1); }; }
-namespace std { void __throw_length_error(char const*) { }}
-namespace std { void __throw_logic_error(char const*) { }}
-namespace std {void __throw_bad_function_call() { while(1); }; }
-const struct std::nothrow_t std::nothrow{};
-
-void* operator new(std::size_t n, std::nothrow_t const&) {
-  void * const p = std::malloc(n);
-  // handle p == 0
-  return p;
-}
-
-void operator delete(void * p, std::size_t) { // or delete(void *, std::size_t)
-  std::free(p);
-}
-
-void operator delete(void * p, std::nothrow_t const&) {
-  std::free(p);
-}
-
-void* operator new(std::size_t n, std::align_val_t) {
-  void * const p = std::malloc(n);
-  // handle p == 0
-  return p;
-}
-
-void operator delete(void* p, unsigned long, std::align_val_t) {
-  std::free(p);
-}
