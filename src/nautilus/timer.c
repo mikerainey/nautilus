@@ -383,10 +383,14 @@ uint64_t nk_timer_handler (void)
 	case NK_TIMER_CALLBACK: 
 	    // launch callback, but do not wait for it
 	    //DEBUG("launching callback for %s\n", cur->name);
+          if (cur->cpu == my_cpu_id()) {
+            cur->callback(cur->priv); /// synchronous
+          } else {
 	    smp_xcall(cur->cpu,
 		      cur->callback,
 		      cur->priv,
 		      0);
+          }
 	    break;
 	default:
 	    //ERROR("unsupported 0x%lx\n", cur->flags);
@@ -407,7 +411,8 @@ uint64_t nk_timer_handler (void)
     
     //DEBUG("update: earliest is %llu\n",earliest);
 
-    return earliest;
+    now = nk_sched_get_realtime();
+    return earliest > now ? earliest-now : 0;
 }
 
 

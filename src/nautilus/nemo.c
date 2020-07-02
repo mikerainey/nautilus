@@ -69,7 +69,7 @@ nemo_ipi_event_recv (excp_entry_t * excp, excp_vec_t v, void *state)
 	ASSERT(event);
 	ASSERT(event->action);
 
-	NEMO_DEBUG("Recv'd notification for task id=%u func=%p priv=%p\n", eid, (void*)event->action, event->priv_data);
+        //	NEMO_DEBUG("%lu Recv'd notification for task id=%u func=%p priv=%p\n", nk_sched_get_realtime(), eid, (void*)event->action, event->priv_data);
 
 	event->action(excp, event->priv_data);
 
