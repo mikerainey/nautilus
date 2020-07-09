@@ -180,6 +180,61 @@ struct shell_cmd_impl tpal_spmv_serial = {
 nk_register_shell_cmd(tpal_spmv_serial);
 
 /*---------------------------------------------------------------------*/
+/* Benchmark registry for fib */
+
+// Interrupt
+
+void handle_fib_interrupt(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_fib_interrupt = {
+  .cmd      = "fib_interrupt",
+  .help_str = "",
+  .handler  = handle_fib_interrupt,
+};
+
+nk_register_shell_cmd(tpal_fib_interrupt);
+
+// Manual
+
+void handle_fib_manual(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_fib_manual = {
+  .cmd      = "fib_manual",
+  .help_str = "",
+  .handler  = handle_fib_manual,
+};
+
+nk_register_shell_cmd(tpal_fib_manual);
+
+// Software polling
+
+void handle_fib_software_polling(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_fib_software_polling = {
+  .cmd      = "fib_software_polling",
+  .help_str = "",
+  .handler  = handle_fib_software_polling,
+};
+
+nk_register_shell_cmd(tpal_fib_software_polling);
+
+// Serial
+
+void handle_fib_serial(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_fib_serial = {
+  .cmd      = "fib_serial",
+  .help_str = "",
+  .handler  = handle_fib_serial,
+};
+
+nk_register_shell_cmd(tpal_fib_serial);
+
+/*---------------------------------------------------------------------*/
 /* Registry of nautilus thread-local storage for the mcsl runtime */
 
 static

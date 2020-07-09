@@ -10,7 +10,7 @@
 
 namespace tpalrts {
 
-std::size_t nb_workers = 1;
+std::size_t nb_workers = 7;
   
 namespace bench_incr_array {
 
@@ -394,22 +394,22 @@ auto bench_post() -> void {
   assert(r == fib_serial(n));
 }
 
-void bench_fib_array_interrupt() {
+void bench_fib_interrupt() {
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
-void bench_fib_array_software_polling() {
+void bench_fib_software_polling() {
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
 }
 
-void bench_fib_array_serial() {
+void bench_fib_serial() {
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
 }
 
-void bench_fib_array_manual() {
+void bench_fib_manual() {
   mcsl::perworker::unique_id::initialize(nb_workers);
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   bench_pre();
@@ -423,17 +423,17 @@ void bench_fib_array_manual() {
 } // end namespace
 
 extern "C" {
-  void handle_fib_array_interrupt(char *buf, void *priv) {
-    tpalrts::fib::bench_fib_array_interrupt();
+  void handle_fib_interrupt(char *buf, void *priv) {
+    tpalrts::fib::bench_fib_interrupt();
   }
-  void handle_fib_array_software_polling(char *buf, void *priv) {
-    tpalrts::fib::bench_fib_array_software_polling();
+  void handle_fib_software_polling(char *buf, void *priv) {
+    tpalrts::fib::bench_fib_software_polling();
   }
-  void handle_fib_array_manual(char *buf, void *priv) {
-    tpalrts::fib::bench_fib_array_manual();
+  void handle_fib_manual(char *buf, void *priv) {
+    tpalrts::fib::bench_fib_manual();
   }
-  void handle_fib_array_serial(char *buf, void *priv) {
-    tpalrts::fib::bench_fib_array_serial();
+  void handle_fib_serial(char *buf, void *priv) {
+    tpalrts::fib::bench_fib_serial();
   }
 }
 
