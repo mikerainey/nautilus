@@ -9,6 +9,10 @@ namespace tpalrts {
 
 mcsl::clock::time_point_type start_time, finish_time;
 
+// temporarily, assume we're benchmarking on the desktop machine, which has cpus @ 3ghz
+static constexpr
+double dflt_cpu_freq_ghz = 3.0;
+
 /*---------------------------------------------------------------------*/
 /* Launch */
  
@@ -18,12 +22,9 @@ void launch0(std::size_t nb_workers,
 	     const Bench_pre& bench_pre,
 	     const Bench_post& bench_post,
 	     Fiber_body f_body) {
-  nk_heartbeat_timer_ns = dflt_timer_ns;
   {
-    double cpu_freq_ghz = 2.0; //mcsl::load_cpu_frequency_ghz();
-    kappa_usec = 100;
-    auto kappa_nsec = kappa_usec * 1000;
-    kappa_cycles = (uint64_t)(cpu_freq_ghz * kappa_nsec);
+    uint64_t dflt_kappa_usec = 100;
+    set_kappa_usec(dflt_cpu_freq_ghz, dflt_kappa_usec);
   }
   mcsl::init_print_lock();
   bench_pre();

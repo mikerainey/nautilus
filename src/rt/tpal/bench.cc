@@ -6,12 +6,87 @@
 #include "tpalrts.hpp"
 
 /*---------------------------------------------------------------------*/
-/* Incr array */
+/* Control the setting of kappa */
 
 namespace tpalrts {
 
-std::size_t nb_workers = 7;
+void set_kappa_20() {
+  set_kappa_usec(dflt_cpu_freq_ghz, 20);
+  printk("kappa_usec %lu\n", kappa_usec);
+}
+
+void set_kappa_40() {
+  set_kappa_usec(dflt_cpu_freq_ghz, 40);
+  printk("kappa_usec %lu\n", kappa_usec);
+}
+
+void set_kappa_100() {
+  set_kappa_usec(dflt_cpu_freq_ghz, 100);
+  printk("kappa_usec %lu\n", kappa_usec);
+}
+
+void set_kappa_400() {
+  set_kappa_usec(dflt_cpu_freq_ghz, 400);
+  printk("kappa_usec %lu\n", kappa_usec);
+}
+
+} // end namespace  
+
+extern "C" {
+  void handle_set_kappa_20(char *buf, void *priv) {
+    tpalrts::set_kappa_20();
+  }
+  void handle_set_kappa_40(char *buf, void *priv) {
+    tpalrts::set_kappa_40();
+  }
+  void handle_set_kappa_100(char *buf, void *priv) {
+    tpalrts::set_kappa_100();
+  }
+  void handle_set_kappa_400(char *buf, void *priv) {
+    tpalrts::set_kappa_400();
+  }
+}
+
+/*---------------------------------------------------------------------*/
+/* Control the number of worker threads */
+
+namespace tpalrts {
+
+std::size_t nb_workers = 1;
+
+void set_nb_workers_1() {
+  nb_workers = 1;
+  printk("nb_workers %lu\n", nb_workers);
+}
+
+void set_nb_workers_3() {
+  nb_workers = 3;
+  printk("nb_workers %lu\n", nb_workers);
+}
   
+void set_nb_workers_7() {
+  nb_workers = 7;
+  printk("nb_workers %lu\n", nb_workers);
+}
+
+} // end namespace
+
+extern "C" {
+  void handle_set_nb_workers_1(char *buf, void *priv) {
+    tpalrts::set_nb_workers_1();
+  }
+  void handle_set_nb_workers_3(char *buf, void *priv) {
+    tpalrts::set_nb_workers_3();
+  }
+  void handle_set_nb_workers_7(char *buf, void *priv) {
+    tpalrts::set_nb_workers_7();
+  }
+}
+
+/*---------------------------------------------------------------------*/
+/* Incr array */
+
+namespace tpalrts {  
 namespace bench_incr_array {
 
 uint64_t nb_items = 1000 * 1000 * 1000;
@@ -362,7 +437,7 @@ extern "C" {
 namespace tpalrts {
 namespace fib {
 
-uint64_t n = 43;
+uint64_t n = 40;
 uint64_t r = 0;
 tpalrts::stack_type s;
   

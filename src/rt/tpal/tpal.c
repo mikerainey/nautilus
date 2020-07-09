@@ -15,6 +15,90 @@
 #define INFO(fmt, args...) INFO_PRINT("tpal: " fmt, ##args)
 
 /*---------------------------------------------------------------------*/
+/* Control the setting of kappa */
+
+void handle_set_kappa_20(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_kappa_20 = {
+  .cmd      = "set_kappa_20",
+  .help_str = "",
+  .handler  = handle_set_kappa_20,
+};
+
+nk_register_shell_cmd(tpal_set_kappa_20);
+
+void handle_set_kappa_40(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_kappa_40 = {
+  .cmd      = "set_kappa_40",
+  .help_str = "",
+  .handler  = handle_set_kappa_40,
+};
+
+nk_register_shell_cmd(tpal_set_kappa_40);
+
+void handle_set_kappa_100(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_kappa_100 = {
+  .cmd      = "set_kappa_100",
+  .help_str = "",
+  .handler  = handle_set_kappa_100,
+};
+
+nk_register_shell_cmd(tpal_set_kappa_100);
+
+void handle_set_kappa_400(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_kappa_400 = {
+  .cmd      = "set_kappa_400",
+  .help_str = "",
+  .handler  = handle_set_kappa_400,
+};
+
+nk_register_shell_cmd(tpal_set_kappa_400);
+
+/*---------------------------------------------------------------------*/
+/* Control the number of work threads */
+
+void handle_set_nb_workers_1(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_nb_workers_1 = {
+  .cmd      = "set_nb_workers_1",
+  .help_str = "",
+  .handler  = handle_set_nb_workers_1,
+};
+
+nk_register_shell_cmd(tpal_set_nb_workers_1);
+
+void handle_set_nb_workers_3(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_nb_workers_3 = {
+  .cmd      = "set_nb_workers_3",
+  .help_str = "",
+  .handler  = handle_set_nb_workers_3,
+};
+
+nk_register_shell_cmd(tpal_set_nb_workers_3);
+
+void handle_set_nb_workers_7(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_nb_workers_7 = {
+  .cmd      = "set_nb_workers_7",
+  .help_str = "",
+  .handler  = handle_set_nb_workers_7,
+};
+
+nk_register_shell_cmd(tpal_set_nb_workers_7);
+
+
+/*---------------------------------------------------------------------*/
 /* Benchmark registry for incr_array */
 
 // Interrupt
