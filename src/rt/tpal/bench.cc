@@ -278,8 +278,8 @@ double* y;
 char* env;
   
 auto bench_pre() -> void {
-  n = 90000000;
-  row_len =std::min(n, (int64_t)1000);
+  n = 300 * 1000 * 1000;
+  row_len = std::min(n, (int64_t)1000);
   nb_rows = n / row_len;
   nb_vals = n;
   val = (double*)malloc(sizeof(double) * nb_vals);
