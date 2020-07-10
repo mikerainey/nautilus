@@ -10,24 +10,21 @@
 
 namespace tpalrts {
 
+
 void set_kappa_20() {
   set_kappa_usec(dflt_cpu_freq_ghz, 20);
-  printk("kappa_usec %lu\n", kappa_usec);
 }
 
 void set_kappa_40() {
   set_kappa_usec(dflt_cpu_freq_ghz, 40);
-  printk("kappa_usec %lu\n", kappa_usec);
 }
 
 void set_kappa_100() {
   set_kappa_usec(dflt_cpu_freq_ghz, 100);
-  printk("kappa_usec %lu\n", kappa_usec);
 }
 
 void set_kappa_400() {
   set_kappa_usec(dflt_cpu_freq_ghz, 400);
-  printk("kappa_usec %lu\n", kappa_usec);
 }
 
 } // end namespace  
@@ -56,17 +53,14 @@ std::size_t nb_workers = 1;
 
 void set_nb_workers_1() {
   nb_workers = 1;
-  printk("nb_workers %lu\n", nb_workers);
 }
 
 void set_nb_workers_3() {
   nb_workers = 3;
-  printk("nb_workers %lu\n", nb_workers);
 }
   
 void set_nb_workers_7() {
   nb_workers = 7;
-  printk("nb_workers %lu\n", nb_workers);
 }
 
 } // end namespace

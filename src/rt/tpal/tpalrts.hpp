@@ -22,10 +22,7 @@ void launch0(std::size_t nb_workers,
 	     const Bench_pre& bench_pre,
 	     const Bench_post& bench_post,
 	     Fiber_body f_body) {
-  {
-    uint64_t dflt_kappa_usec = 100;
-    set_kappa_usec(dflt_cpu_freq_ghz, dflt_kappa_usec);
-  }
+  set_kappa_usec(dflt_cpu_freq_ghz, kappa_usec);
   mcsl::init_print_lock();
   bench_pre();
   logging::initialize();
@@ -45,6 +42,8 @@ void launch0(std::size_t nb_workers,
           --seconds; 
           ns += 1000000000; 
         }
+        printk("nb_workers %lu\n", nb_workers);
+        printk("kappa_usec %lu\n", kappa_usec);
         printk("exectime %lu.%09ld\n", seconds, ns);
       }
       stats::report(nb_workers);
