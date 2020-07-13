@@ -1,15 +1,21 @@
+#include <limits.h>
+
 #include "incr_array.hpp"
 #include "plus_reduce_array.hpp"
 #include "spmv.hpp"
 #include "fib.hpp"
+#include "knapsack_input.hpp"
 
 #include "tpalrts.hpp"
+
+void print_prog(const char* s) {
+  aprintf("prog %s\n", s);
+}
 
 /*---------------------------------------------------------------------*/
 /* Control the setting of kappa */
 
 namespace tpalrts {
-
 
 void set_kappa_20() {
   set_kappa_usec(dflt_cpu_freq_ghz, 20);
@@ -27,6 +33,10 @@ void set_kappa_400() {
   set_kappa_usec(dflt_cpu_freq_ghz, 400);
 }
 
+void set_kappa_40000() {
+  set_kappa_usec(dflt_cpu_freq_ghz, 40000);
+}
+
 } // end namespace  
 
 extern "C" {
@@ -41,6 +51,9 @@ extern "C" {
   }
   void handle_set_kappa_400(char *buf, void *priv) {
     tpalrts::set_kappa_400();
+  }
+  void handle_set_kappa_40000(char *buf, void *priv) {
+    tpalrts::set_kappa_40000();
   }
 }
 
@@ -91,6 +104,10 @@ auto bench_pre() -> void {
   for (int64_t i = 0; i < nb_items; i++) {
     a[i] = 0;
   }
+  print_header = [=] {
+    print_prog("incr_array");
+    aprintf("n %lu\n", nb_items);
+  };
 }
 
 auto bench_body_interrupt(promotable* p) -> void {
@@ -121,21 +138,25 @@ auto bench_post() -> void {
 }
 
 void bench_incr_array_interrupt() {
+  sched_configuration = sched_configuration_interrupt;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
 void bench_incr_array_software_polling() {
+  sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
 }
 
 void bench_incr_array_serial() {
+  sched_configuration = sched_configuration_serial;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
 }
 
 void bench_incr_array_manual() {
+  sched_configuration = sched_configuration_manual;
   mcsl::perworker::unique_id::initialize(nb_workers);
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   bench_pre();
@@ -177,6 +198,10 @@ auto bench_pre() -> void {
   for (int64_t i = 0; i < nb_items; i++) {
     a[i] = 1;
   }
+  print_header = [=] {
+    print_prog("plus_reduce_array");
+    aprintf("n %lu\n", nb_items);
+  };
 }
 
 auto bench_body_interrupt(promotable* p) -> void {
@@ -207,21 +232,25 @@ auto bench_post() -> void {
 }
 
 void bench_plus_reduce_array_interrupt() {
+  sched_configuration = sched_configuration_interrupt;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
 void bench_plus_reduce_array_software_polling() {
+  sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
 }
 
 void bench_plus_reduce_array_serial() {
+  sched_configuration = sched_configuration_serial;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
 }
 
 void bench_plus_reduce_array_manual() {
+  sched_configuration = sched_configuration_manual;
   mcsl::perworker::unique_id::initialize(nb_workers);
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   bench_pre();
@@ -278,7 +307,7 @@ double* y;
 char* env;
   
 auto bench_pre() -> void {
-  n = 300 * 1000 * 1000;
+  n = 500 * 1000 * 1000;
   row_len = std::min(n, (int64_t)1000);
   nb_rows = n / row_len;
   nb_vals = n;
@@ -306,6 +335,10 @@ auto bench_pre() -> void {
   for (int64_t i = 0; i != nb_vals; i++) {
     val[i] = 1.0;
   }
+  print_header = [=] {
+    print_prog("spmv");
+    aprintf("n %lu\n", n);
+  };
 }
 
 auto bench_body_interrupt(promotable* p) -> void {
@@ -352,7 +385,17 @@ auto bench_body_software_polling(promotable* p) -> void {
 }
 
 auto bench_body_serial(promotable* p) -> void {
-  spmv_serial(val, row_ptr, col_ind, x, y, nb_rows);
+  //spmv_serial(val, row_ptr, col_ind, x, y, nb_rows);
+  GET_FROM_ENV(double*, SPMV_OFF01, env) = val;
+  GET_FROM_ENV(int64_t*, SPMV_OFF02, env) = row_ptr;
+  GET_FROM_ENV(int64_t*, SPMV_OFF03, env) = col_ind;
+  GET_FROM_ENV(double*, SPMV_OFF04, env) = x;
+  GET_FROM_ENV(double*, SPMV_OFF05, env) = y;
+  GET_FROM_ENV(int64_t, SPMV_OFF06, env) = 0;
+  GET_FROM_ENV(int64_t, SPMV_OFF07, env) = nb_rows;
+  GET_FROM_ENV(promotable*, SPMV_OFF10, env) = p;
+  GET_FROM_ENV(double*, SPMV_OFF12, env) = nullptr;
+  spmv_interrupt(env);
 }
 
 auto bench_post() -> void {
@@ -384,21 +427,25 @@ auto bench_post() -> void {
 }
 
 void bench_spmv_interrupt() {
+  sched_configuration = sched_configuration_interrupt;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
 void bench_spmv_software_polling() {
+  sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
 }
 
 void bench_spmv_serial() {
+  sched_configuration = sched_configuration_serial;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
 }
 
 void bench_spmv_manual() {
+  sched_configuration = sched_configuration_manual;
   mcsl::perworker::unique_id::initialize(nb_workers);
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   bench_pre();
@@ -436,7 +483,10 @@ uint64_t r = 0;
 tpalrts::stack_type s;
   
 auto bench_pre() -> void {
-  
+  print_header = [=] {
+    print_prog("fib");
+    aprintf("n %lu\n", n);
+  };
 }
 
 auto bench_body_interrupt(promotable* p) -> void {
@@ -464,21 +514,25 @@ auto bench_post() -> void {
 }
 
 void bench_fib_interrupt() {
+  sched_configuration = sched_configuration_interrupt;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
 void bench_fib_software_polling() {
+  sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
 }
 
 void bench_fib_serial() {
+  sched_configuration = sched_configuration_serial;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
 }
 
 void bench_fib_manual() {
+  sched_configuration = sched_configuration_manual;
   mcsl::perworker::unique_id::initialize(nb_workers);
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   bench_pre();
@@ -503,6 +557,100 @@ extern "C" {
   }
   void handle_fib_serial(char *buf, void *priv) {
     tpalrts::fib::bench_fib_serial();
+  }
+}
+
+/*---------------------------------------------------------------------*/
+/* Knapsack */
+
+namespace tpalrts {
+namespace knapsack {
+
+int n, capacity;
+int sol = INT_MIN;
+#define MAX_ITEMS 256
+struct item items[MAX_ITEMS];
+tpalrts::stack_type s;
+  
+auto bench_pre() -> void {
+  n = knapsack_n;
+  capacity = knapsack_capacity;
+  knapsack_init(items);
+  best_so_far.store(INT_MIN);
+  seq_best_so_far = INT_MIN;
+  print_header = [=] {
+    print_prog("knapsack");
+  };
+}
+
+auto bench_body_interrupt(promotable* p) -> void {
+  rollforward_table = {
+  };
+  s = tpalrts::snew();
+  knapsack_heartbeat<heartbeat_mechanism_hardware_interrupt>(items, capacity, n, 0, &sol, p, s);
+}
+
+auto bench_body_software_polling(promotable* p) -> void {
+  s = tpalrts::snew();
+  knapsack_heartbeat<heartbeat_mechanism_software_polling>(items, capacity, n, 0, &sol, p, s);
+}
+
+auto bench_body_serial(promotable* p) -> void {
+  s = tpalrts::snew();
+  sol = knapsack_custom_stack_serial(items, capacity, n, 0, s);
+}
+
+auto bench_post() -> void {
+  if (s.stack != nullptr) {
+    sdelete(s);
+  }
+  //  assert(r == knapsack_serial(n));
+}
+
+void bench_knapsack_interrupt() {
+  sched_configuration = sched_configuration_interrupt;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
+}
+
+void bench_knapsack_software_polling() {
+  sched_configuration = sched_configuration_software_polling;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
+  launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
+}
+
+void bench_knapsack_serial() {
+  sched_configuration = sched_configuration_serial;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
+  launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
+}
+
+void bench_knapsack_manual() {
+  sched_configuration = sched_configuration_manual;
+  mcsl::perworker::unique_id::initialize(nb_workers);
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
+  bench_pre();
+  auto bench_body_manual = new knapsack_manual<microbench_scheduler_type>();
+  auto bench_pre2 = [] { };
+  launch0<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre2, bench_post, bench_body_manual);
+}
+
+  
+} // end namespace
+} // end namespace
+
+extern "C" {
+  void handle_knapsack_interrupt(char *buf, void *priv) {
+    tpalrts::knapsack::bench_knapsack_interrupt();
+  }
+  void handle_knapsack_software_polling(char *buf, void *priv) {
+    tpalrts::knapsack::bench_knapsack_software_polling();
+  }
+  void handle_knapsack_manual(char *buf, void *priv) {
+    tpalrts::knapsack::bench_knapsack_manual();
+  }
+  void handle_knapsack_serial(char *buf, void *priv) {
+    tpalrts::knapsack::bench_knapsack_serial();
   }
 }
 

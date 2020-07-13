@@ -13,8 +13,20 @@ mcsl::clock::time_point_type start_time, finish_time;
 static constexpr
 double dflt_cpu_freq_ghz = 3.0;
 
+char* sched_configuration_serial = "serial";
+
+char* sched_configuration_software_polling = "software_polling";
+
+char* sched_configuration_interrupt = "interrupt";
+
+char* sched_configuration_manual = "manual";
+
+char* sched_configuration = "<bogus>";
+
 /*---------------------------------------------------------------------*/
 /* Launch */
+
+std::function<void()> print_header;
  
 template <typename Scheduler, typename Worker, typename Interrupt,
           typename Bench_pre, typename Bench_post, typename Fiber_body>
@@ -38,15 +50,20 @@ void launch0(std::size_t nb_workers,
       {
         uint64_t seconds = finish_time.tv_sec - start_time.tv_sec;
         uint64_t ns = finish_time.tv_nsec - start_time.tv_nsec;
-        if (start_time.tv_nsec > finish_time.tv_nsec) { // clock underflow 
+        if (start_time.tv_nsec > finish_time.tv_nsec) { // clock underflow
           --seconds; 
-          ns += 1000000000; 
+          ns += 1000000000l; 
         }
-        printk("nb_workers %lu\n", nb_workers);
-        printk("kappa_usec %lu\n", kappa_usec);
-        printk("exectime %lu.%09ld\n", seconds, ns);
+        print_header();
+        aprintf("scheduler_configuration %s\n", sched_configuration);
+        aprintf("---\n");
+        aprintf("nb_workers %lu\n", nb_workers);
+        aprintf("kappa_usec %lu\n", kappa_usec);
+        aprintf("exectime %lu.%09lu\n", seconds, ns);
       }
       stats::report(nb_workers);
+      aprintf("==========\n");
+      bench_post();
     });
     auto f_term = new terminal_fiber<Scheduler>();
     fiber<Scheduler>::add_edge(f_pre, f_body);
@@ -59,7 +76,6 @@ void launch0(std::size_t nb_workers,
   }
   using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
   scheduler_type::launch(nb_workers);
-  bench_post();
   logging::output(nb_workers);
   ping_thread_interrupt::ping_thread_status.store(ping_thread_status_active);
 }

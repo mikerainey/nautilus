@@ -61,6 +61,17 @@ struct shell_cmd_impl tpal_set_kappa_400 = {
 
 nk_register_shell_cmd(tpal_set_kappa_400);
 
+void handle_set_kappa_40000(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_set_kappa_40000 = {
+  .cmd      = "set_kappa_40000",
+  .help_str = "",
+  .handler  = handle_set_kappa_40000,
+};
+
+nk_register_shell_cmd(tpal_set_kappa_40000);
+
 /*---------------------------------------------------------------------*/
 /* Control the number of work threads */
 
@@ -317,6 +328,61 @@ struct shell_cmd_impl tpal_fib_serial = {
 };
 
 nk_register_shell_cmd(tpal_fib_serial);
+
+/*---------------------------------------------------------------------*/
+/* Benchmark registry for knapsack */
+
+// Interrupt
+
+void handle_knapsack_interrupt(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_knapsack_interrupt = {
+  .cmd      = "knapsack_interrupt",
+  .help_str = "",
+  .handler  = handle_knapsack_interrupt,
+};
+
+nk_register_shell_cmd(tpal_knapsack_interrupt);
+
+// Manual
+
+void handle_knapsack_manual(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_knapsack_manual = {
+  .cmd      = "knapsack_manual",
+  .help_str = "",
+  .handler  = handle_knapsack_manual,
+};
+
+nk_register_shell_cmd(tpal_knapsack_manual);
+
+// Software polling
+
+void handle_knapsack_software_polling(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_knapsack_software_polling = {
+  .cmd      = "knapsack_software_polling",
+  .help_str = "",
+  .handler  = handle_knapsack_software_polling,
+};
+
+nk_register_shell_cmd(tpal_knapsack_software_polling);
+
+// Serial
+
+void handle_knapsack_serial(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_knapsack_serial = {
+  .cmd      = "knapsack_serial",
+  .help_str = "",
+  .handler  = handle_knapsack_serial,
+};
+
+nk_register_shell_cmd(tpal_knapsack_serial);
 
 /*---------------------------------------------------------------------*/
 /* Registry of nautilus thread-local storage for the mcsl runtime */
