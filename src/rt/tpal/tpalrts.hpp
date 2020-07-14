@@ -17,7 +17,7 @@ char* sched_configuration_serial = "serial";
 
 char* sched_configuration_software_polling = "software_polling";
 
-char* sched_configuration_interrupt = "interrupt";
+char* sched_configuration_interrupt = "interrupt_ping_thread";
 
 char* sched_configuration_manual = "manual";
 
@@ -56,6 +56,9 @@ void launch0(std::size_t nb_workers,
         }
         print_header();
         aprintf("scheduler_configuration %s\n", sched_configuration);
+        if (sched_configuration == sched_configuration_software_polling) {
+          aprintf("software_polling_K %lu", dflt_software_polling_K);
+        }
         aprintf("---\n");
         aprintf("nb_workers %lu\n", nb_workers);
         aprintf("kappa_usec %lu\n", kappa_usec);
