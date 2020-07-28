@@ -7,11 +7,9 @@
 
 namespace tpalrts {
 
-mcsl::clock::time_point_type start_time, finish_time;
+uint64_t cpu_freq_khz = 0;
 
-// temporarily, assume we're benchmarking on the desktop machine, which has cpus @ 3ghz
-static constexpr
-double dflt_cpu_freq_ghz = 3.0;
+mcsl::clock::time_point_type start_time, finish_time;
 
 char* sched_configuration_serial = "serial";
 
@@ -22,6 +20,15 @@ char* sched_configuration_interrupt = "interrupt_ping_thread";
 char* sched_configuration_manual = "manual";
 
 char* sched_configuration = "<bogus>";
+
+static inline
+void nautilus_assign_kappa(uint64_t kappa_usec) {
+  if (cpu_freq_khz == 0) {
+    cpu_freq_khz = mcsl::load_cpu_frequency_khz();
+  }
+  assert(cpu_freq_khz != 0);
+  assign_kappa(cpu_freq_khz, kappa_usec);
+}
 
 /*---------------------------------------------------------------------*/
 /* Launch */
@@ -34,7 +41,7 @@ void launch0(std::size_t nb_workers,
 	     const Bench_pre& bench_pre,
 	     const Bench_post& bench_post,
 	     Fiber_body f_body) {
-  set_kappa_usec(dflt_cpu_freq_ghz, kappa_usec);
+  assign_kappa(cpu_freq_khz, kappa_usec);
   mcsl::init_print_lock();
   bench_pre();
   logging::initialize();
@@ -57,11 +64,13 @@ void launch0(std::size_t nb_workers,
         print_header();
         aprintf("scheduler_configuration %s\n", sched_configuration);
         if (sched_configuration == sched_configuration_software_polling) {
-          aprintf("software_polling_K %lu", dflt_software_polling_K);
+          aprintf("software_polling_K %lu\n", dflt_software_polling_K);
         }
         aprintf("---\n");
         aprintf("nb_workers %lu\n", nb_workers);
         aprintf("kappa_usec %lu\n", kappa_usec);
+        aprintf("kappa_cycles %lu\n", kappa_cycles);
+        aprintf("cpu_freq_khz %lu\n", cpu_freq_khz);
         aprintf("exectime %lu.%09lu\n", seconds, ns);
       }
       stats::report(nb_workers);
@@ -89,6 +98,7 @@ void launch(std::size_t nb_workers,
             const Bench_pre& bench_pre,
             const Bench_post& bench_post,
             const Bench_body& bench_body) {
+  cpu_freq_khz = nk_detect_cpu_freq(0);
   mcsl::perworker::unique_id::initialize(nb_workers);
   auto f_body = new fiber<Scheduler>(bench_body);
   launch0<Scheduler, Worker, Interrupt>(nb_workers, bench_pre, bench_post, f_body);

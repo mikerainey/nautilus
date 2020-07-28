@@ -18,23 +18,23 @@ void print_prog(const char* s) {
 namespace tpalrts {
 
 void set_kappa_20() {
-  set_kappa_usec(dflt_cpu_freq_ghz, 20);
+  nautilus_assign_kappa(20);
 }
 
 void set_kappa_40() {
-  set_kappa_usec(dflt_cpu_freq_ghz, 40);
+  nautilus_assign_kappa(40);
 }
 
 void set_kappa_100() {
-  set_kappa_usec(dflt_cpu_freq_ghz, 100);
+  nautilus_assign_kappa(100);
 }
 
 void set_kappa_400() {
-  set_kappa_usec(dflt_cpu_freq_ghz, 400);
+  nautilus_assign_kappa(400);
 }
 
 void set_kappa_40000() {
-  set_kappa_usec(dflt_cpu_freq_ghz, 40000);
+  nautilus_assign_kappa(40000);
 }
 
 } // end namespace  
