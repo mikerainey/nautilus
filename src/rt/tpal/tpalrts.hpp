@@ -9,8 +9,6 @@ namespace tpalrts {
 
 uint64_t cpu_freq_khz = 0;
 
-mcsl::clock::time_point_type start_time, finish_time;
-
 char* sched_configuration_serial = "serial";
 
 char* sched_configuration_software_polling = "software_polling";
@@ -34,6 +32,7 @@ void nautilus_assign_kappa(uint64_t kappa_usec) {
 /* Launch */
 
 std::function<void()> print_header;
+uint64_t start_cycle, elapsed_cycles;
  
 template <typename Scheduler, typename Worker, typename Interrupt,
           typename Bench_pre, typename Bench_post, typename Fiber_body>
@@ -49,29 +48,27 @@ void launch0(std::size_t nb_workers,
     auto f_pre = new fiber<Scheduler>([=] (promotable*) {
       stats::start_collecting();
       logging::log_event(mcsl::enter_algo);
-      start_time = mcsl::clock::now();
+      start_cycle = mcsl::cycles::now();
     });
     auto f_cont = new fiber<Scheduler>([=] (promotable*) {
-      finish_time = mcsl::clock::now();
+      elapsed_cycles = mcsl::cycles::since(start_cycle);
       logging::log_event(mcsl::exit_algo);
       {
-        uint64_t seconds = finish_time.tv_sec - start_time.tv_sec;
-        uint64_t ns = finish_time.tv_nsec - start_time.tv_nsec;
-        if (start_time.tv_nsec > finish_time.tv_nsec) { // clock underflow
-          --seconds; 
-          ns += 1000000000l; 
-        }
         print_header();
         aprintf("scheduler_configuration %s\n", sched_configuration);
         if (sched_configuration == sched_configuration_software_polling) {
           aprintf("software_polling_K %lu\n", dflt_software_polling_K);
         }
         aprintf("---\n");
-        aprintf("nb_workers %lu\n", nb_workers);
+        aprintf("proc %lu\n", nb_workers);
         aprintf("kappa_usec %lu\n", kappa_usec);
         aprintf("kappa_cycles %lu\n", kappa_cycles);
         aprintf("cpu_freq_khz %lu\n", cpu_freq_khz);
-        aprintf("exectime %lu.%09lu\n", seconds, ns);
+        aprintf("execcycles %lu\n", elapsed_cycles);
+        {
+          auto et2 = mcsl::seconds_of(mcsl::load_cpu_frequency_khz(), elapsed_cycles);
+          aprintf("exectime %lu.%03lu\n", et2.seconds, et2.milliseconds);
+        }
       }
       stats::report(nb_workers);
       aprintf("==========\n");
