@@ -30,7 +30,7 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out
-    cp nautilus.iso $out/    
+    cp nautilus.iso nautilus.bin nautilus.syms $out/    
   '';
 
 }
