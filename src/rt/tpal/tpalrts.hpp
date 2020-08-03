@@ -75,7 +75,6 @@ void launch0(std::size_t nb_workers,
       }
       stats::report(nb_workers);
       aprintf("==========\n");
-      bench_post();
     });
     auto f_term = new terminal_fiber<Scheduler>();
     fiber<Scheduler>::add_edge(f_pre, f_body);
@@ -89,6 +88,7 @@ void launch0(std::size_t nb_workers,
   using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
   scheduler_type::launch(nb_workers);
   logging::output(nb_workers);
+  bench_post();
   ping_thread_interrupt::ping_thread_status.store(ping_thread_status_active);
 }
 

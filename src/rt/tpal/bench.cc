@@ -502,14 +502,12 @@ auto bench_body_software_polling(promotable* p) -> void {
 }
 
 auto bench_body_serial(promotable* p) -> void {
-  s = tpalrts::snew();
-  r = fib_custom_stack_serial(n, 128, s);
+  //  s = tpalrts::snew();
+  //  r = fib_custom_stack_serial(n, 128, s);
+  r = fib_serial(n);
 }
 
 auto bench_post() -> void {
-  if (s.stack != nullptr) {
-    sdelete(s);
-  }
   assert(r == fib_serial(n));
 }
 
@@ -596,14 +594,12 @@ auto bench_body_software_polling(promotable* p) -> void {
 }
 
 auto bench_body_serial(promotable* p) -> void {
-  s = tpalrts::snew();
-  sol = knapsack_custom_stack_serial(items, capacity, n, 0, s);
+  knapsack_seq(items, capacity, n, 0, &sol);
+  //  s = tpalrts::snew();
+  //  sol = knapsack_custom_stack_serial(items, capacity, n, 0, s);
 }
 
 auto bench_post() -> void {
-  if (s.stack != nullptr) {
-    sdelete(s);
-  }
   //  assert(r == knapsack_serial(n));
 }
 
