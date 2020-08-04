@@ -125,6 +125,19 @@ struct shell_cmd_impl tpal_incr_array_interrupt = {
 
 nk_register_shell_cmd(tpal_incr_array_interrupt);
 
+// Interrupt no promotion
+
+void handle_incr_array_interrupt_nopromote(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_incr_array_interrupt_nopromote = {
+  .cmd      = "incr_array_interrupt_nopromote",
+  .help_str = "",
+  .handler  = handle_incr_array_interrupt_nopromote,
+};
+
+nk_register_shell_cmd(tpal_incr_array_interrupt_nopromote);
+
 // Manual
 
 void handle_incr_array_manual(char *buf, void *priv);
@@ -179,6 +192,19 @@ struct shell_cmd_impl tpal_plus_reduce_array_interrupt = {
 };
 
 nk_register_shell_cmd(tpal_plus_reduce_array_interrupt);
+
+// Interrupt no promotion
+
+void handle_plus_reduce_array_interrupt_nopromote(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_plus_reduce_array_interrupt_nopromote = {
+  .cmd      = "plus_reduce_array_interrupt_nopromote",
+  .help_str = "",
+  .handler  = handle_plus_reduce_array_interrupt_nopromote,
+};
+
+nk_register_shell_cmd(tpal_plus_reduce_array_interrupt_nopromote);
 
 // Manual
 
@@ -235,6 +261,19 @@ struct shell_cmd_impl tpal_spmv_interrupt = {
 
 nk_register_shell_cmd(tpal_spmv_interrupt);
 
+// Interrupt no promotion
+
+void handle_spmv_interrupt_nopromote(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_spmv_interrupt_nopromote = {
+  .cmd      = "spmv_interrupt_nopromote",
+  .help_str = "",
+  .handler  = handle_spmv_interrupt_nopromote,
+};
+
+nk_register_shell_cmd(tpal_spmv_interrupt_nopromote);
+
 // Manual
 
 void handle_spmv_manual(char *buf, void *priv);
@@ -290,6 +329,19 @@ struct shell_cmd_impl tpal_fib_interrupt = {
 
 nk_register_shell_cmd(tpal_fib_interrupt);
 
+// Interrupt no promotion
+
+void handle_fib_interrupt_nopromote(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_fib_interrupt_nopromote = {
+  .cmd      = "fib_interrupt_nopromote",
+  .help_str = "",
+  .handler  = handle_fib_interrupt_nopromote,
+};
+
+nk_register_shell_cmd(tpal_fib_interrupt_nopromote);
+
 // Manual
 
 void handle_fib_manual(char *buf, void *priv);
@@ -344,6 +396,19 @@ struct shell_cmd_impl tpal_knapsack_interrupt = {
 };
 
 nk_register_shell_cmd(tpal_knapsack_interrupt);
+
+// Interrupt no promotion
+
+void handle_knapsack_interrupt_nopromote(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_knapsack_interrupt_nopromote = {
+  .cmd      = "knapsack_interrupt_nopromote",
+  .help_str = "",
+  .handler  = handle_knapsack_interrupt_nopromote,
+};
+
+nk_register_shell_cmd(tpal_knapsack_interrupt_nopromote);
 
 // Manual
 

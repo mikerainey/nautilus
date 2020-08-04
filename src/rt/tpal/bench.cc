@@ -143,6 +143,12 @@ void bench_incr_array_interrupt() {
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
+void bench_incr_array_interrupt_nopromote() {
+  sched_configuration = sched_configuration_nopromote_interrupt;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
+}
+
 void bench_incr_array_software_polling() {
   sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
@@ -171,6 +177,9 @@ void bench_incr_array_manual() {
 extern "C" {
   void handle_incr_array_interrupt(char *buf, void *priv) {
     tpalrts::bench_incr_array::bench_incr_array_interrupt();
+  }
+  void handle_incr_array_interrupt_nopromote(char *buf, void *priv) {
+    tpalrts::bench_incr_array::bench_incr_array_interrupt_nopromote();
   }
   void handle_incr_array_software_polling(char *buf, void *priv) {
     tpalrts::bench_incr_array::bench_incr_array_software_polling();
@@ -237,6 +246,12 @@ void bench_plus_reduce_array_interrupt() {
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
+void bench_plus_reduce_array_interrupt_nopromote() {
+  sched_configuration = sched_configuration_nopromote_interrupt;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
+}
+
 void bench_plus_reduce_array_software_polling() {
   sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
@@ -265,6 +280,9 @@ void bench_plus_reduce_array_manual() {
 extern "C" {
   void handle_plus_reduce_array_interrupt(char *buf, void *priv) {
     tpalrts::plus_reduce_array::bench_plus_reduce_array_interrupt();
+  }
+  void handle_plus_reduce_array_interrupt_nopromote(char *buf, void *priv) {
+    tpalrts::plus_reduce_array::bench_plus_reduce_array_interrupt_nopromote();
   }
   void handle_plus_reduce_array_software_polling(char *buf, void *priv) {
     tpalrts::plus_reduce_array::bench_plus_reduce_array_software_polling();
@@ -432,6 +450,12 @@ void bench_spmv_interrupt() {
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
+void bench_spmv_interrupt_nopromote() {
+  sched_configuration = sched_configuration_nopromote_interrupt;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
+}
+
 void bench_spmv_software_polling() {
   sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
@@ -460,6 +484,9 @@ void bench_spmv_manual() {
 extern "C" {
   void handle_spmv_interrupt(char *buf, void *priv) {
     tpalrts::bench_spmv::bench_spmv_interrupt();
+  }
+  void handle_spmv_interrupt_nopromote(char *buf, void *priv) {
+    tpalrts::bench_spmv::bench_spmv_interrupt_nopromote();
   }
   void handle_spmv_software_polling(char *buf, void *priv) {
     tpalrts::bench_spmv::bench_spmv_software_polling();
@@ -517,6 +544,12 @@ void bench_fib_interrupt() {
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
+void bench_fib_interrupt_nopromote() {
+  sched_configuration = sched_configuration_nopromote_interrupt;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
+}
+
 void bench_fib_software_polling() {
   sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
@@ -546,6 +579,9 @@ void bench_fib_manual() {
 extern "C" {
   void handle_fib_interrupt(char *buf, void *priv) {
     tpalrts::fib::bench_fib_interrupt();
+  }
+  void handle_fib_interrupt_nopromote(char *buf, void *priv) {
+    tpalrts::fib::bench_fib_interrupt_nopromote();
   }
   void handle_fib_software_polling(char *buf, void *priv) {
     tpalrts::fib::bench_fib_software_polling();
@@ -609,6 +645,12 @@ void bench_knapsack_interrupt() {
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
 
+void bench_knapsack_interrupt_nopromote() {
+  sched_configuration = sched_configuration_nopromote_interrupt;
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_serial);
+}
+
 void bench_knapsack_software_polling() {
   sched_configuration = sched_configuration_software_polling;
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
@@ -638,6 +680,9 @@ void bench_knapsack_manual() {
 extern "C" {
   void handle_knapsack_interrupt(char *buf, void *priv) {
     tpalrts::knapsack::bench_knapsack_interrupt();
+  }
+  void handle_knapsack_interrupt_nopromote(char *buf, void *priv) {
+    tpalrts::knapsack::bench_knapsack_interrupt_nopromote();
   }
   void handle_knapsack_software_polling(char *buf, void *priv) {
     tpalrts::knapsack::bench_knapsack_software_polling();

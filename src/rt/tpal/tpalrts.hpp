@@ -15,6 +15,8 @@ char* sched_configuration_software_polling = "software_polling";
 
 char* sched_configuration_interrupt = "interrupt_ping_thread";
 
+char* sched_configuration_nopromote_interrupt = "nopromote_interrupt_ping_thread";
+
 char* sched_configuration_manual = "manual";
 
 char* sched_configuration = "<bogus>";
