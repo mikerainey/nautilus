@@ -177,6 +177,19 @@ struct shell_cmd_impl tpal_incr_array_serial = {
 
 nk_register_shell_cmd(tpal_incr_array_serial);
 
+// All
+
+void handle_incr_array(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_incr_array = {
+  .cmd      = "incr_array",
+  .help_str = "",
+  .handler  = handle_incr_array,
+};
+
+nk_register_shell_cmd(tpal_incr_array);
+
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for plus_reduce_array */
 
@@ -244,6 +257,19 @@ struct shell_cmd_impl tpal_plus_reduce_array_serial = {
 };
 
 nk_register_shell_cmd(tpal_plus_reduce_array_serial);
+
+// All
+
+void handle_plus_reduce_array(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_plus_reduce_array = {
+  .cmd      = "plus_reduce_array",
+  .help_str = "",
+  .handler  = handle_plus_reduce_array,
+};
+
+nk_register_shell_cmd(tpal_plus_reduce_array);
 
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for spmv */
@@ -313,6 +339,19 @@ struct shell_cmd_impl tpal_spmv_serial = {
 
 nk_register_shell_cmd(tpal_spmv_serial);
 
+// All
+
+void handle_spmv(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_spmv = {
+  .cmd      = "spmv",
+  .help_str = "",
+  .handler  = handle_spmv,
+};
+
+nk_register_shell_cmd(tpal_spmv);
+
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for fib */
 
@@ -381,6 +420,19 @@ struct shell_cmd_impl tpal_fib_serial = {
 
 nk_register_shell_cmd(tpal_fib_serial);
 
+// All
+
+void handle_fib(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_fib = {
+  .cmd      = "fib",
+  .help_str = "",
+  .handler  = handle_fib,
+};
+
+nk_register_shell_cmd(tpal_fib);
+
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for knapsack */
 
@@ -448,6 +500,19 @@ struct shell_cmd_impl tpal_knapsack_serial = {
 };
 
 nk_register_shell_cmd(tpal_knapsack_serial);
+
+// All
+
+void handle_knapsack(char *buf, void *priv);
+
+static
+struct shell_cmd_impl tpal_knapsack = {
+  .cmd      = "knapsack",
+  .help_str = "",
+  .handler  = handle_knapsack,
+};
+
+nk_register_shell_cmd(tpal_knapsack);
 
 /*---------------------------------------------------------------------*/
 /* Registry of nautilus thread-local storage for the mcsl runtime */

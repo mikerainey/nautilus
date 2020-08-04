@@ -1,4 +1,6 @@
 #include <limits.h>
+#include <functional>
+#include <vector>
 
 #include "incr_array.hpp"
 #include "plus_reduce_array.hpp"
@@ -7,6 +9,15 @@
 #include "knapsack_input.hpp"
 
 #include "tpalrts.hpp"
+
+extern "C"
+uint32_t nk_get_num_cpus (void);
+
+void call_thunks(std::vector<std::function<void()>>& thunks) {
+  for (auto& f : thunks) {
+    f();
+  }
+}
 
 void print_prog(const char* s) {
   aprintf("prog %s\n", s);
@@ -76,6 +87,14 @@ void set_nb_workers_7() {
   nb_workers = 7;
 }
 
+void set_nb_workers_15() {
+  nb_workers = 15;
+}
+
+void set_nb_workers() {
+  nb_workers = nk_get_num_cpus() - 1;    
+}
+
 } // end namespace
 
 extern "C" {
@@ -88,7 +107,34 @@ extern "C" {
   void handle_set_nb_workers_7(char *buf, void *priv) {
     tpalrts::set_nb_workers_7();
   }
+  void handle_set_nb_workers_15(char *buf, void *priv) {
+    tpalrts::set_nb_workers_15();
+  }
 }
+
+namespace tpalrts {
+
+void run_all(std::vector<std::function<void()>>& thunks) {
+  set_nb_workers_1();
+  
+  set_kappa_100();
+  call_thunks(thunks);
+  set_kappa_40();
+  call_thunks(thunks);
+  set_kappa_20();
+  call_thunks(thunks);
+
+  set_nb_workers();
+  
+  set_kappa_100();
+  call_thunks(thunks);
+  set_kappa_40();
+  call_thunks(thunks);
+  set_kappa_20();
+  call_thunks(thunks);
+}
+  
+} // end namespace
 
 /*---------------------------------------------------------------------*/
 /* Incr array */
@@ -171,6 +217,13 @@ void bench_incr_array_manual() {
   launch0<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre2, bench_post, bench_body_manual);
 }
 
+std::vector<std::function<void()>> incr_array_thunks = {  std::bind(bench_incr_array_interrupt),
+                                                          std::bind(bench_incr_array_interrupt_nopromote),
+                                                          std::bind(bench_incr_array_software_polling),
+                                                          std::bind(bench_incr_array_serial),
+                                                          std::bind(bench_incr_array_manual)
+};
+
 } // end namespace
 } // end namespace
 
@@ -189,6 +242,9 @@ extern "C" {
   }
   void handle_incr_array_serial(char *buf, void *priv) {
     tpalrts::bench_incr_array::bench_incr_array_serial();
+  }
+  void handle_incr_array(char *buf, void *priv) {
+    tpalrts::run_all(tpalrts::bench_incr_array::incr_array_thunks);
   }
 }
 
@@ -274,6 +330,13 @@ void bench_plus_reduce_array_manual() {
   launch0<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre2, bench_post, bench_body_manual);
 }
 
+std::vector<std::function<void()>> plus_reduce_array_thunks = {  std::bind(bench_plus_reduce_array_interrupt),
+                                                                 std::bind(bench_plus_reduce_array_interrupt_nopromote),
+                                                                 std::bind(bench_plus_reduce_array_software_polling),
+                                                                 std::bind(bench_plus_reduce_array_serial),
+                                                                 std::bind(bench_plus_reduce_array_manual)
+};
+
 } // end namespace
 } // end namespace
 
@@ -292,6 +355,9 @@ extern "C" {
   }
   void handle_plus_reduce_array_serial(char *buf, void *priv) {
     tpalrts::plus_reduce_array::bench_plus_reduce_array_serial();
+  }
+  void handle_plus_reduce_array(char *buf, void *priv) {
+    tpalrts::run_all(tpalrts::plus_reduce_array::plus_reduce_array_thunks);
   }
 }
 
@@ -478,6 +544,13 @@ void bench_spmv_manual() {
   launch0<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre2, bench_post, bench_body_manual);
 }
 
+std::vector<std::function<void()>> spmv_thunks = {  std::bind(bench_spmv_interrupt),
+                                                    std::bind(bench_spmv_interrupt_nopromote),
+                                                    std::bind(bench_spmv_software_polling),
+                                                    std::bind(bench_spmv_serial),
+                                                    std::bind(bench_spmv_manual)
+};
+  
 } // end namespace
 } // end namespace
 
@@ -496,6 +569,9 @@ extern "C" {
   }
   void handle_spmv_serial(char *buf, void *priv) {
     tpalrts::bench_spmv::bench_spmv_serial();
+  }
+  void handle_spmv(char *buf, void *priv) {
+    tpalrts::run_all(tpalrts::bench_spmv::spmv_thunks);
   }
 }
 
@@ -572,6 +648,12 @@ void bench_fib_manual() {
   launch0<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre2, bench_post, bench_body_manual);
 }
 
+std::vector<std::function<void()>> fib_thunks = {  std::bind(bench_fib_interrupt),
+                                                   std::bind(bench_fib_interrupt_nopromote),
+                                                   std::bind(bench_fib_software_polling),
+                                                   std::bind(bench_fib_serial),
+                                                   std::bind(bench_fib_manual)
+};
   
 } // end namespace
 } // end namespace
@@ -591,6 +673,9 @@ extern "C" {
   }
   void handle_fib_serial(char *buf, void *priv) {
     tpalrts::fib::bench_fib_serial();
+  }
+  void handle_fib(char *buf, void *priv) {
+    tpalrts::run_all(tpalrts::fib::fib_thunks);
   }
 }
 
@@ -673,6 +758,12 @@ void bench_knapsack_manual() {
   launch0<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre2, bench_post, bench_body_manual);
 }
 
+std::vector<std::function<void()>> knapsack_thunks = {  std::bind(bench_knapsack_interrupt),
+                                                        std::bind(bench_knapsack_interrupt_nopromote),
+                                                        std::bind(bench_knapsack_software_polling),
+                                                        std::bind(bench_knapsack_serial),
+                                                        std::bind(bench_knapsack_manual)
+};
   
 } // end namespace
 } // end namespace
@@ -692,6 +783,9 @@ extern "C" {
   }
   void handle_knapsack_serial(char *buf, void *priv) {
     tpalrts::knapsack::bench_knapsack_serial();
+  }
+  void handle_knapsack(char *buf, void *priv) {
+    tpalrts::run_all(tpalrts::knapsack::knapsack_thunks);
   }
 }
 
