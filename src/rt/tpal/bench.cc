@@ -596,12 +596,12 @@ auto bench_body_interrupt(promotable* p) -> void {
   rollforward_table = {
   };
   s = tpalrts::snew();
-  fib_heartbeat<heartbeat_mechanism_hardware_interrupt>(n, &r, p, 128, s, fib_heartbeat_entry, 0);  
+  fib_heartbeat<heartbeat_mechanism_hardware_interrupt>(n, &r, p, 128, s);  
 }
 
 auto bench_body_software_polling(promotable* p) -> void {
   s = tpalrts::snew();
-  fib_heartbeat<heartbeat_mechanism_software_polling>(n, &r, p, 128, s, fib_heartbeat_entry, 0);
+  fib_heartbeat<heartbeat_mechanism_software_polling>(n, &r, p, 128, s);
 }
 
 auto bench_body_serial(promotable* p) -> void {
