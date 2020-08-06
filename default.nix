@@ -25,7 +25,7 @@ stdenv.mkDerivation rec {
     cp --remove-destination ${tpalSrc}/runtime/include/*.hpp include/rt/tpal
     cp --remove-destination ${tpalSrc}/runtime/bench/*.hpp src/rt/tpal
     cp --remove-destination ${tpalSrc}/runtime/bench/*_manual.s src/rt/tpal
-    make isoimage -j KBUILD_VERBOSE=1
+    make isoimage -j
   '';
 
   installPhase = ''
