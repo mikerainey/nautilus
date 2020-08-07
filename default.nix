@@ -4,9 +4,9 @@
   grub ? pkgs.grub2,
   binutils ? pkgs.binutils,
   xorriso ? pkgs.xorriso,
-  mcslSrc ? ../elastic-work-stealing/mcsl,
-  mcsl ? import "${mcslSrc}/nix/default.nix" {},
-  tpalSrc ? ../tpal,
+  sources ? import ./local-sources.nix,
+  mcsl ? sources.mcsl,
+  tpalSrc ? sources.tpalSrc,
   nautilusSrc ? ./.,
   nautilusConfig ? "${nautilusSrc}/configs/default-config"
 }:
