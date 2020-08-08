@@ -175,7 +175,7 @@
 #endif
 
 #ifdef NAUT_CONFIG_TPAL_RT
-//#include <rt/tpal/tpal.h>
+#include <rt/tpal/tpal.h>
 #endif
 
 extern spinlock_t printk_lock;
@@ -255,7 +255,7 @@ runtime_init (void)
 #endif
 
 #ifdef NAUT_CONFIG_TPAL_RT
-        //        nk_tpal_init();
+        nk_tpal_init();
 #endif
 
 }

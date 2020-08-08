@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <functional>
 #include <vector>
+#include <cstring>
 
 #include "incr_array.hpp"
 #include "plus_reduce_array.hpp"
@@ -787,6 +788,23 @@ extern "C" {
   void handle_knapsack(char *buf, void *priv) {
     tpalrts::run_all(tpalrts::knapsack::knapsack_thunks);
   }
+}
+
+void handle_cmdline_cpp(int argc, char** argv) {
+  if (strcmp(argv[0], "incr_array") == 0) {
+  }
+}
+
+/*---------------------------------------------------------------------*/
+/* Command line */
+
+extern "C" {
+void handle_cmdline(int argc, char** argv) {
+  if (argc < 1) {
+    return;
+  }
+  handle_cmdline_cpp(argc, argv);
+}
 }
 
 /*---------------------------------------------------------------------*/
