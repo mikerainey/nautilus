@@ -5,6 +5,9 @@
 #include "tpalrts_scheduler.hpp"
 #include "tpalrts_fiber.hpp"
 
+extern "C"
+uint32_t nk_get_num_cpus (void);
+
 namespace tpalrts {
 
 uint64_t cpu_freq_khz = 0;
@@ -30,6 +33,19 @@ void nautilus_assign_kappa(uint64_t kappa_usec) {
   assign_kappa(cpu_freq_khz, kappa_usec);
 }
 
+using cpu_binding_type = enum cpu_binding_enum {
+  cpu_binding_disabled,
+  cpu_binding_dense
+};
+
+cpu_binding_type cpu_binding = cpu_binding_dense;
+
+char* cpu_binding_disabled_str = "disabled";
+
+char* cpu_binding_dense_str = "dense";
+
+char* cpu_binding_str = cpu_binding_disabled_str;
+
 /*---------------------------------------------------------------------*/
 /* Launch */
 
@@ -44,6 +60,24 @@ void launch0(std::size_t nb_workers,
 	     Fiber_body f_body) {
   assign_kappa(cpu_freq_khz, kappa_usec);
   mcsl::init_print_lock();
+  auto nb_cpus = nk_get_num_cpus();
+  { // cpu binding
+    auto cpu_binding_possible = (nb_workers <= nb_cpus);
+    if (cpu_binding_possible && (cpu_binding == cpu_binding_dense)) {
+      std::size_t j = 1;
+      for (std::size_t i = 0; i < nb_workers; i++) {
+        mcsl::worker_cpu_bindings[i] = j;
+        j = (j + 1) % nb_cpus;
+      }
+      cpu_binding_str = cpu_binding_dense_str;
+    } else {
+      assert(cpu_binding == cpu_binding_disabled);
+      for (std::size_t i = 0; i < nb_workers; i++) {
+        mcsl::worker_cpu_bindings[i] = -1;
+      }
+      cpu_binding_str = cpu_binding_disabled_str;
+    }
+  }
   bench_pre();
   logging::initialize();
   {
@@ -57,6 +91,8 @@ void launch0(std::size_t nb_workers,
       logging::log_event(mcsl::exit_algo);
       {
         print_header();
+        aprintf("nb_cpus %d\n", nb_cpus);
+        aprintf("cpu_binding %s\n", cpu_binding_str);
         aprintf("scheduler_configuration %s\n", sched_configuration);
         if (sched_configuration == sched_configuration_software_polling) {
           aprintf("software_polling_K %lu\n", dflt_software_polling_K);
