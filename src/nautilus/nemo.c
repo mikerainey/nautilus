@@ -70,7 +70,9 @@ nemo_ipi_event_recv (excp_entry_t * excp, excp_vec_t v, void *state)
 	ASSERT(event->action);
 
         //	NEMO_DEBUG("%lu Recv'd notification for task id=%u func=%p priv=%p\n", nk_sched_get_realtime(), eid, (void*)event->action, event->priv_data);
-
+        // we believe event->action contains a bogus value when run via the testing framework
+        // peter believes the bogus value is caused by the test framework running before nemo configuration
+        // ask kyle for debugging output that his student implemented
 	event->action(excp, event->priv_data);
 
 	IRQ_HANDLER_END();

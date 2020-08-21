@@ -4,6 +4,7 @@
 #include <nautilus/timer.h>
 #include <nautilus/nemo.h>
 #include <nautilus/cmdline.h>
+#include <test/test.h>
 #include <assert.h>
 
 #ifndef NAUT_CONFIG_TPAL_RT_DEBUG
@@ -518,107 +519,34 @@ nk_register_shell_cmd(tpal_knapsack);
 /*---------------------------------------------------------------------*/
 /* Command line (grub) */
 
-#define ARGMAX 80
-#define ARG_OPEN '"'
-#define ARG_CLOSE '"'
+volatile int is_done = 0;
 
-/*
- * format is -tpal bench "arg1 arg2 -f arg3"
- *                 ^
- *                 we start here
- */
 static
-int tpal_parse_args (char * args, int * argc, char ** argv[]) {
-    char * arg_vec[ARGMAX];
-    char * arg_copy  = NULL;
-    char  * testname = NULL;
-    char * curs      = NULL;
-    char * tmp       = NULL;
-    int foundargs = 0;
-    int len = 0;
+void nk_thread_init_fn2(void *in, void **out) {
+  printk("In tpal test handler\n");
+  handle_incr_array_interrupt(NULL,NULL);
+  is_done = 1;
+}
 
-    memset(arg_vec, 0, sizeof(char*)*ARGMAX);
 
-    curs = args;
+static int
+handle_tpal_test (int argc, char ** argv)
+{
+    nk_thread_start(nk_thread_init_fn2, NULL, 0, 0, TSTACK_DEFAULT, 0, -1);
+    while (!is_done) {
 
-    // skip white space
-    while (*curs && *curs == ' ') curs++;
-
-    tmp = curs;
-
-    // find the end of the test name
-    while (*curs != ' ') {
-        curs++; len++;
     }
-
-    testname = malloc(len+1);
-    strncpy(testname, tmp, len);
-    testname[len] = '\0';
-
-    DEBUG("bench: %s\n", testname);
-
-    arg_vec[(*argc)++] = testname;
-
-    while (*curs && *curs != ARG_OPEN) curs++;
-
-    if (*curs != ARG_OPEN) {
-        DEBUG("No args found, skipping\n");
-        goto out;
-    }
-
-    tmp = ++curs;
-    len = 0;
-
-    while (*curs && *curs != ARG_CLOSE) {
-        curs++; len++;
-    }
-
-    arg_copy = malloc(len+1);
-    strncpy(arg_copy, tmp, len);
-    arg_copy[len] = '\0';
-
-    tmp = strtok(arg_copy, " ");
-
-    DEBUG("First arg: %s\n", tmp);
-
-    if (tmp) {
-        arg_vec[(*argc)++] = tmp;
-    }
-
-    while ((tmp = strtok(NULL, " "))) {
-        DEBUG("Arg found: %s\n", tmp);
-        arg_vec[(*argc)++] = tmp;
-    }
-
-    DEBUG("Found %d args\n", *argc);
-
-out:
-    *argv = malloc(sizeof(char*)*(*argc));
-    memcpy(*argv, arg_vec, sizeof(char*)*(*argc));
-
     return 0;
 }
 
-void handle_cmdline(int argc, char** argv);
 
-/*
-static
-int handle_tpal_from_cmdline (char* args) {
-  char ** argv;
-  int argc;
-  
-  //tpal_parse_args(args, &argc, &argv);
-  
-  //  handle_cmdline(argc, argv);
-  return 0;
-}
-
-static struct nk_cmdline_impl tpal_cmdline_impl = {
-    .name    = "tpal",
-    .handler = handle_tpal_from_cmdline,
+static struct nk_test_impl test_impl = {
+    .name         = "tpaltest",
+    .handler      = handle_tpal_test,
+    .default_args = "foo bar baz",
 };
-nk_register_cmdline_flag(tpal_cmdline_impl);
-*/
+
+nk_register_test(test_impl);
 
 /*---------------------------------------------------------------------*/
 /* Registry of nautilus thread-local storage for the mcsl runtime */
