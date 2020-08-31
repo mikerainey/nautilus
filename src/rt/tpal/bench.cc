@@ -186,6 +186,7 @@ auto bench_post() -> void {
 
 void bench_incr_array_interrupt() {
   sched_configuration = sched_configuration_interrupt;
+  set_nb_workers_7();
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }
@@ -198,6 +199,7 @@ void bench_incr_array_interrupt_nopromote() {
 
 void bench_incr_array_software_polling() {
   sched_configuration = sched_configuration_software_polling;
+  printk("STARTING TPAL on %d workers\n",nb_workers);
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
   launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, bench_pre, bench_post, bench_body_software_polling);
 }

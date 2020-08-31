@@ -7,7 +7,7 @@
   sources ? import ./local-sources.nix,
   mcsl ? sources.mcsl,
   tpalSrc ? sources.tpalSrc,
-  nautilusSrc ? ./.,
+  nautilusSrc ? sources.nautilusSrc,
   nautilusConfig ? "${nautilusSrc}/configs/default-config"
 }:
 

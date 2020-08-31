@@ -519,26 +519,11 @@ nk_register_shell_cmd(tpal_knapsack);
 /*---------------------------------------------------------------------*/
 /* Command line (grub) */
 
-volatile int is_done = 0;
-
 static
-void nk_thread_init_fn2(void *in, void **out) {
-  printk("In tpal test handler\n");
-  handle_incr_array_interrupt(NULL,NULL);
-  is_done = 1;
+int handle_tpal_test (int argc, char ** argv) {
+  handle_incr_array_software_polling(NULL,NULL);
+  return 0;
 }
-
-
-static int
-handle_tpal_test (int argc, char ** argv)
-{
-    nk_thread_start(nk_thread_init_fn2, NULL, 0, 0, TSTACK_DEFAULT, 0, -1);
-    while (!is_done) {
-
-    }
-    return 0;
-}
-
 
 static struct nk_test_impl test_impl = {
     .name         = "tpaltest",
@@ -571,7 +556,8 @@ void nk_mcsl_set_unique_id(unsigned id) {
 }
 
 unsigned nk_mcsl_read_unique_id() {
-  return *((unsigned*)nk_tls_get(unique_id_key));
+  unsigned* p = (unsigned*)nk_tls_get(unique_id_key);
+  return *p;
 }
 
 /*---------------------------------------------------------------------*/

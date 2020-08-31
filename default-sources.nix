@@ -10,6 +10,8 @@ in
 
 {
 
+  nautilusSrc = ./.;   # later: fetch from github
+
   mcsl = import "${mcslSrc}/nix/default.nix" {};
 
   tpalSrc = pkgs.fetchFromGitHub {

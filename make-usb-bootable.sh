@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 nix-build
+#--argstr nautilusConfig configs/tinker-config
 
 [ "$UID" -eq 0 ] || exec sudo "$0" "$@"
 OF=/dev/disk/by-id/usb-USB_2.0_USB_Flash_Drive_26B2504330140063-0\:0

@@ -23,6 +23,7 @@
 #include <nautilus/shutdown.h>
 #include <nautilus/cmdline.h>
 #include <nautilus/hashtable.h>
+#include <nautilus/idle.h>
 #include <test/test.h>
 
 #ifndef NAUT_CONFIG_DEBUG_TESTS
@@ -143,6 +144,7 @@ __run_tests (struct naut_info * naut, int shutdown)
 int
 nk_run_tests (struct naut_info * naut)
 {
+    nk_thread_start(idle, NULL, 0, 0, TSTACK_DEFAULT, 0, 0);
     int ret = __run_tests(naut, 1);
     if (ret != 0) {
         shutdown_with_code(0xff);
