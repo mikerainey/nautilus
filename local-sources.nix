@@ -1,6 +1,6 @@
 let pkgs = import <nixpkgs> {}; in
 
-let mcslSrc = ../elastic-work-stealing/mcsl; in
+let mcslSrc = ../mcsl; in
 
 {
 
