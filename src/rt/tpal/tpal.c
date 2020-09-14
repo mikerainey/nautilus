@@ -195,6 +195,8 @@ nk_register_shell_cmd(tpal_incr_array);
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for plus_reduce_array */
 
+#if 0
+
 // Interrupt
 
 void handle_plus_reduce_array_interrupt(char *buf, void *priv);
@@ -273,8 +275,12 @@ struct shell_cmd_impl tpal_plus_reduce_array = {
 
 nk_register_shell_cmd(tpal_plus_reduce_array);
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for spmv */
+
+#if 0
 
 // Interrupt
 
@@ -354,8 +360,12 @@ struct shell_cmd_impl tpal_spmv = {
 
 nk_register_shell_cmd(tpal_spmv);
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for fib */
+
+#if 0
 
 // Interrupt
 
@@ -435,8 +445,12 @@ struct shell_cmd_impl tpal_fib = {
 
 nk_register_shell_cmd(tpal_fib);
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Benchmark registry for knapsack */
+
+#if 0
 
 // Interrupt
 
@@ -516,11 +530,14 @@ struct shell_cmd_impl tpal_knapsack = {
 
 nk_register_shell_cmd(tpal_knapsack);
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Command line (grub) */
 
 static
 int handle_tpal_test (int argc, char ** argv) {
+  printk("nb_items=%d\n",323);
   handle_incr_array_software_polling(NULL,NULL);
   return 0;
 }

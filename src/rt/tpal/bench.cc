@@ -4,10 +4,10 @@
 #include <cstring>
 
 #include "incr_array.hpp"
-#include "plus_reduce_array.hpp"
-#include "spmv.hpp"
-#include "fib.hpp"
-#include "knapsack_input.hpp"
+//#include "plus_reduce_array.hpp"
+//#include "spmv.hpp"
+//#include "fib.hpp"
+//#include "knapsack_input.hpp"
 
 #include "tpalrts.hpp"
 
@@ -143,7 +143,7 @@ void run_all(std::vector<std::function<void()>>& thunks) {
 namespace tpalrts {  
 namespace bench_incr_array {
 
-uint64_t nb_items = 1000 * 1000 * 1000;
+uint64_t nb_items = 1000 * 1000 * 100;
 int64_t* a;
   
 auto bench_pre() -> void {
@@ -159,10 +159,7 @@ auto bench_pre() -> void {
 
 auto bench_body_interrupt(promotable* p) -> void {
   rollforward_table = {
-    mk_rollforward_entry(incr_array_interrupt_l0, incr_array_interrupt_rf_l0),
-    mk_rollforward_entry(incr_array_interrupt_l1, incr_array_interrupt_rf_l1),
-    mk_rollforward_entry(incr_array_interrupt_l2, incr_array_interrupt_rf_l2),
-    mk_rollforward_entry(incr_array_interrupt_l3, incr_array_interrupt_rf_l3),
+    #include "incr_array_rollforward_map.hpp"
   };
   incr_array_interrupt(a, 0, nb_items, p);
 }
@@ -253,6 +250,8 @@ extern "C" {
 
 /*---------------------------------------------------------------------*/
 /* Plus reduce array */
+
+#if 0
 
 namespace tpalrts {
 namespace plus_reduce_array {
@@ -364,8 +363,12 @@ extern "C" {
   }
 }
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Sparse matrix dense vector product */
+
+#if 0
 
 namespace tpalrts {
 namespace bench_spmv {
@@ -578,8 +581,12 @@ extern "C" {
   }
 }
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Fib */
+
+#if 0
 
 namespace tpalrts {
 namespace fib {
@@ -682,8 +689,12 @@ extern "C" {
   }
 }
 
+#endif
+
 /*---------------------------------------------------------------------*/
 /* Knapsack */
+
+#if 0
 
 namespace tpalrts {
 namespace knapsack {
@@ -792,22 +803,8 @@ extern "C" {
   }
 }
 
-void handle_cmdline_cpp(int argc, char** argv) {
-  if (strcmp(argv[0], "incr_array") == 0) {
-  }
-}
 
-/*---------------------------------------------------------------------*/
-/* Command line */
-
-extern "C" {
-void handle_cmdline(int argc, char** argv) {
-  if (argc < 1) {
-    return;
-  }
-  handle_cmdline_cpp(argc, argv);
-}
-}
+#endif
 
 /*---------------------------------------------------------------------*/
 /* Fills some C++ stdlib functions that cannot be linked w/ Nautilus */
