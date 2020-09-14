@@ -36,8 +36,8 @@ stdenv.mkDerivation {
   name = "nautilus-shell";
   buildInputs = [ qemu nautilus gcc grub xorriso binutils ];
   shellHook = ''
-    alias nautilus="qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 2048 -curses -nographic -smp 4"
+    alias nautilus="qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 16000 -curses -nographic -smp 4"
     alias nautilus_link_tpal="./scripts/tpal.sh `pwd`/../tpal `pwd`/../mcsl `pwd`"
-    alias nautilus-local="qemu-system-x86_64 -cdrom ./nautilus.iso -m 2048 -curses -nographic -smp 4"
+    alias nautilus_local="qemu-system-x86_64 -cdrom ./nautilus.iso -m 16000 -curses -nographic -smp 4"
   '';
 }
