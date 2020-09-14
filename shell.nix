@@ -1,3 +1,9 @@
+# Usage:
+#   $ nix-shell
+#   ... nautilus build ...
+#   $ nautilus
+#   ... boot nautilus in qemu ...
+
 { pkgs   ? import <nixpkgs> {},
   stdenv ? pkgs.stdenv,
   nautilusSrc ? ./.,
@@ -13,6 +19,6 @@ stdenv.mkDerivation {
   name = "nautilus-shell";
   buildInputs = [ qemu nautilus ];
   shellHook = ''
-    qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 2048 -curses -nographic -smp 4
+    alias nautilus="qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 2048 -curses -nographic -smp 4"
   '';
 }
