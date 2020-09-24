@@ -147,7 +147,13 @@ uint64_t nb_items = 1000 * 1000 * 100;
 int64_t* a;
   
 auto bench_pre() -> void {
+  printk("allocating %lu\n",nb_items);
   a = (int64_t*)malloc(sizeof(int64_t)*nb_items);
+  if (a == nullptr) {
+    printk("ERROR\n");
+    return;
+  }
+  printk("initializing %lu\n",nb_items);
   for (int64_t i = 0; i < nb_items; i++) {
     a[i] = 0;
   }
@@ -183,7 +189,7 @@ auto bench_post() -> void {
 
 void bench_incr_array_interrupt() {
   sched_configuration = sched_configuration_interrupt;
-  set_nb_workers_7();
+  //  set_nb_workers_3();
   using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, bench_pre, bench_post, bench_body_interrupt);
 }

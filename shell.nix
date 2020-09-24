@@ -39,5 +39,6 @@ stdenv.mkDerivation {
     alias nautilus="qemu-system-x86_64 -cdrom ${nautilus}/nautilus.iso -m 16000 -curses -nographic -smp 4"
     alias nautilus_link_tpal="./scripts/tpal.sh `pwd`/../tpal `pwd`/../mcsl `pwd`"
     alias nautilus_local="qemu-system-x86_64 -cdrom ./nautilus.iso -m 16000 -curses -nographic -smp 4"
+    alias nautilus_nix="qemu-system-x86_64 -cdrom ./result/nautilus.iso -m 16000 -curses -nographic -smp 4"
   '';
 }

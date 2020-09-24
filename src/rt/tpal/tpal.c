@@ -538,7 +538,12 @@ nk_register_shell_cmd(tpal_knapsack);
 static
 int handle_tpal_test (int argc, char ** argv) {
   printk("nb_items=%d\n",323);
+  /*  handle_incr_array_interrupt(NULL,NULL);
+      handle_incr_array_interrupt(NULL,NULL); */
+    handle_incr_array_software_polling(NULL,NULL);
+    printk("finished 1\n");
   handle_incr_array_software_polling(NULL,NULL);
+
   return 0;
 }
 
