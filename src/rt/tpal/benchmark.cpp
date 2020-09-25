@@ -3,9 +3,14 @@
 #include <vector>
 #include <cstring>
 
-#include "benchmark_nautilus.hpp"
+#include "mcsl_chaselev.hpp"
+#include "mcsl_machine.hpp"
 
-//#include "incr_array.hpp"
+#include "tpalrts_scheduler.hpp"
+#include "tpalrts_fiber.hpp"
+
+#include "incr_array.hpp"
+#include "plus_reduce_array.hpp"
 
 extern "C"
 uint32_t nk_get_num_cpus (void);
@@ -20,23 +25,167 @@ void print_prog(const char* s) {
   aprintf("prog %s\n", s);
 }
 
+namespace tpalrts {
+
+uint64_t cpu_freq_khz = 0;
+
+char* sched_configurations [] = {
+  "serial",
+  "software_polling",
+  "interrupt_ping_thread",
+  "nopromote_interrupt_ping_thread",
+  "manual",
+};
+
+char* sched_configuration = "<bogus>";
+
+auto find_string(char* s, char** ss, std::size_t n) -> std::size_t {
+  std::size_t i = 0;
+  for (; i < n; i++) {
+    if (strcmp(s, ss[i]) == 0) {
+      return i;
+    }
+  }
+  return n;
+};
+
+static inline
+void nautilus_assign_kappa(uint64_t kappa_usec) {
+  if (cpu_freq_khz == 0) {
+    cpu_freq_khz = mcsl::load_cpu_frequency_khz();
+  }
+  assert(cpu_freq_khz != 0);
+  assign_kappa(cpu_freq_khz, kappa_usec);
+}
+
+/*---------------------------------------------------------------------*/
+/* Launch */
+
+std::function<void()> print_header;
+  
+uint64_t start_cycle, elapsed_cycles;
+
+using promotable_function_type = std::function<void(promotable*)>;
+ 
+using benchmark_type = struct benchmark_struct {
+  promotable_function_type pre;
+  promotable_function_type body;
+  promotable_function_type post;
+};
+
+template <typename Scheduler, typename Worker, typename Interrupt>
+void launch(std::size_t nb_workers,
+	    std::vector<benchmark_type> benchmarks) {
+  cpu_freq_khz = nk_detect_cpu_freq((uint32_t)0);
+  mcsl::nb_workers = nb_workers;
+  mcsl::perworker::unique_id::initialize(nb_workers);
+  auto nb_cpus = nk_get_num_cpus();
+  assert(nb_workers <= nb_cpus);
+  mcsl::initialize_machine();
+  assign_kappa(cpu_freq_khz, kappa_usec);
+  std::vector<fiber<Scheduler>*> fibers;
+  auto f_cont = new fiber<Scheduler>([=] (promotable*) {});
+  auto f_term = new terminal_fiber<Scheduler>();
+  fibers.push_back(f_cont);
+  fibers.push_back(f_term);
+  fiber<Scheduler>::add_edge(f_cont, f_term);
+  for (auto b : benchmarks) {
+    auto f_pre = new fiber<Scheduler>([=] (promotable* p) {
+      b.pre(p);
+      stats::start_collecting();
+      start_cycle = mcsl::cycles::now();
+    });
+    auto f_body = new fiber<Scheduler>(b.body);
+    auto f_post = new fiber<Scheduler>([=] (promotable* p) {
+      elapsed_cycles = mcsl::cycles::since(start_cycle);
+      {
+	print_header();
+	aprintf("nb_cpus %d\n", nb_cpus);
+	aprintf("scheduler_configuration %s\n", sched_configuration);
+	aprintf("---\n");
+	aprintf("proc %lu\n", nb_workers);
+	aprintf("kappa_usec %lu\n", kappa_usec);
+	aprintf("kappa_cycles %lu\n", kappa_cycles);
+	aprintf("cpu_freq_khz %lu\n", cpu_freq_khz);
+	aprintf("execcycles %lu\n", elapsed_cycles);
+	auto et = mcsl::seconds_of(mcsl::load_cpu_frequency_khz(), elapsed_cycles);
+	aprintf("exectime %lu.%03lu\n", et.seconds, et.milliseconds);
+      }
+      stats::report(nb_workers);
+      aprintf("==========\n");
+      b.post(p);
+    });
+    fiber<Scheduler>::add_edge(f_pre, f_body);
+    fiber<Scheduler>::add_edge(f_body, f_post);
+    fiber<Scheduler>::add_edge(f_post, f_cont);
+    fibers.push_back(f_pre);
+    fibers.push_back(f_body);
+    fibers.push_back(f_post);
+    f_cont = f_pre;
+  }
+  for (auto f : fibers) {
+    f->release();
+  }
+  using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
+  scheduler_type::launch(nb_workers);
+  ping_thread_interrupt::ping_thread_status.store(ping_thread_status_active);
+} 
+
 void benchmark_init(int argc, char** argv) {
   uint64_t kappa_usec = tpalrts::dflt_kappa_usec;
-  printk("argc=%d\n",argc);
+  uint64_t nb_workers = 1;
   for (int i = 0; i < argc; i++) {
-    if (argv[i] == "-kappa_usec") {
-      printk("hi\n");
+    if (strcmp(argv[i], "kappa_usec") == 0) {
       if ((i + 1) < argc) {
 	kappa_usec = atoi(argv[i + 1]);
       }
+    } else if (strcmp(argv[i], "proc") == 0) {
+      if ((i + 1) < argc) {
+	nb_workers = atoi(argv[i + 1]);
+      }
+    } else if (strcmp(argv[i], "scheduler_configuration") == 0) {
+      if ((i + 1) < argc) {
+	auto s = argv[i + 1];
+	auto n = sizeof(sched_configurations);
+	auto j = find_string(s, sched_configurations, n);
+	if (j < n) {
+	  sched_configuration = sched_configurations[j];
+	}
+      }      
     }
   }
-  printk("ka=%lu\n",kappa_usec);
+  using microbench_scheduler_type = mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, ping_thread_worker, ping_thread_interrupt>;
+  std::vector<benchmark_type> benchmarks;
+   benchmark_type b1 = {
+     .pre = promotable_function_type([] (promotable* p) {
+       print_header = [] {
+	 print_prog("incr_array");
+	 aprintf("n %lu\n", incr_array::nb_items);
+       };
+       incr_array::bench_pre(p);
+     }),
+     .body = promotable_function_type(incr_array::bench_body_interrupt),
+     .post = promotable_function_type(incr_array::bench_post) };
+   benchmarks.push_back(b1);
+   benchmark_type b2 = {
+     .pre = promotable_function_type([] (promotable* p) {
+         print_header = [=] {
+	   print_prog("plus_reduce_array");
+	   aprintf("n %lu\n", plus_reduce_array::nb_items);
+	 };
+	 plus_reduce_array::bench_pre(p);
+     }),
+     .body = promotable_function_type(plus_reduce_array::bench_body_interrupt),
+     .post = promotable_function_type(plus_reduce_array::bench_post) }; 
+     benchmarks.push_back(b2);
+   launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, benchmarks);
+}
+
 }
 
 extern "C" {
   void tpal_bechmark_init(int argc, char** argv) {
-    benchmark_init(argc, argv);
+    tpalrts::benchmark_init(argc, argv);
   }
 }
 

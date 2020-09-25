@@ -33,6 +33,30 @@ static struct nk_test_impl test_impl = {
 
 nk_register_test(test_impl);
 
+static int
+handle_from_cmdline (char * args) {
+  return 0;
+}
+
+static struct nk_cmdline_impl test_sc_impl = {
+    .name    = "scheduler_configuration",
+    .handler = handle_from_cmdline,
+};
+nk_register_cmdline_flag(test_sc_impl);
+
+static struct nk_cmdline_impl test_ku_impl = {
+    .name    = "kappa_usec",
+    .handler = handle_from_cmdline,
+};
+nk_register_cmdline_flag(test_ku_impl);
+
+static struct nk_cmdline_impl test_proc_impl = {
+    .name    = "proc",
+    .handler = handle_from_cmdline,
+};
+nk_register_cmdline_flag(test_proc_impl);
+
+
 /*---------------------------------------------------------------------*/
 /* Registry of nautilus thread-local storage for the mcsl runtime */
 
