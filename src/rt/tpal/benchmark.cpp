@@ -11,6 +11,10 @@
 
 #include "incr_array.hpp"
 #include "plus_reduce_array.hpp"
+#include "floyd_warshall.hpp"
+#include "mandelbrot.hpp"
+#include "kmeans.hpp"
+//#include "spmv.hpp"
 
 extern "C"
 uint32_t nk_get_num_cpus (void);
@@ -38,15 +42,16 @@ using scheduler_configuration_type = enum scheduler_configurations_enum {
   nb_scheduler_configurations
 };
 
-char* scheduler_configurations [] = {
+char* scheduler_configuration_names [] = {
   "serial",
   "software_polling",
   "interrupt_ping_thread",
   "nopromote_interrupt_ping_thread",
   "manual",
+  "<bogus>"
 };
 
-char* scheduler_configuration_name = "<bogus>";
+char* scheduler_configuration_name = scheduler_configuration_names[nb_scheduler_configurations];
 
 scheduler_configuration_type scheduler_configuration = nb_scheduler_configurations;
 
@@ -134,6 +139,7 @@ void launch(std::size_t nb_workers,
       {
 	print_header();
 	aprintf("nb_cpus %d\n", nb_cpus);
+	aprintf("opsys nautilus\n");
 	aprintf("scheduler_configuration %s\n", scheduler_configuration_name);
 	aprintf("---\n");
 	aprintf("proc %lu\n", nb_workers);
@@ -167,6 +173,7 @@ void launch(std::size_t nb_workers,
 void benchmark_init(int argc, char** argv) {
   uint64_t kappa_usec = tpalrts::dflt_kappa_usec;
   uint64_t nb_workers = 1;
+  // parse command line
   for (int i = 0; i < argc; i++) {
     if (strcmp(argv[i], "kappa_usec") == 0) {
       if ((i + 1) < argc) {
@@ -179,16 +186,28 @@ void benchmark_init(int argc, char** argv) {
     } else if (strcmp(argv[i], "scheduler_configuration") == 0) {
       if ((i + 1) < argc) {
 	auto s = argv[i + 1];
-	auto n = sizeof(scheduler_configurations);
+	auto n = sizeof(scheduler_configuration_names);
 	assert(nb_scheduler_configurations == n);
-	auto j = find_string(s, scheduler_configurations, n);
+	auto j = find_string(s, scheduler_configuration_names, n);
 	if (j < n) {
 	  scheduler_configuration = (scheduler_configuration_type)j;
-	  scheduler_configuration_name = scheduler_configurations[j];
+	  scheduler_configuration_name = scheduler_configuration_names[j];
 	}
       }      
     }
   }
+  // register benchmarks
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
+      print_prog("kmeans");
+      aprintf("n %lu\n", kmeans::numObjects);
+    };
+    kmeans::bench_pre(p);
+  },
+    kmeans::bench_body_serial,
+    kmeans::bench_body_interrupt,
+    kmeans::bench_post);  
+
   add_benchmark([] (promotable* p) {
     print_header = [] {
       print_prog("incr_array");
@@ -208,7 +227,40 @@ void benchmark_init(int argc, char** argv) {
   },
     plus_reduce_array::bench_body_serial,
     plus_reduce_array::bench_body_interrupt,
-    plus_reduce_array::bench_post);
+    plus_reduce_array::bench_post); 
+  /*
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
+      print_prog("spmv");
+      aprintf("n %lu\n", spmv::n);
+    };
+    spmv::bench_pre(p);
+  },
+    spmv::bench_body_serial,
+    spmv::bench_body_interrupt,
+    spmv::bench_post);  */
+  
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
+      print_prog("mandelbrot");
+      aprintf("n %lu\n", mandelbrot::nb_items);
+    };
+    mandelbrot::bench_pre(p);
+  },
+    mandelbrot::bench_body_serial,
+    mandelbrot::bench_body_interrupt,
+    mandelbrot::bench_post);  /*
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
+      print_prog("floyd_warshall");
+      aprintf("n %lu\n", floyd_warshall::vertices);
+    };
+    floyd_warshall::bench_pre(p);
+  },
+    floyd_warshall::bench_body_serial,
+    floyd_warshall::bench_body_interrupt,
+    floyd_warshall::bench_post);*/ 
+  // launch scheduler
   switch (scheduler_configuration) {
   case scheduler_configuration_serial: {
     using microbench_scheduler_type =
