@@ -14,7 +14,9 @@
 #include "floyd_warshall.hpp"
 #include "mandelbrot.hpp"
 #include "kmeans.hpp"
-//#include "spmv.hpp"
+#include "spmv.hpp"
+#include "knapsack.hpp"
+#include "mergesort.hpp"
 
 extern "C"
 uint32_t nk_get_num_cpus (void);
@@ -199,6 +201,36 @@ void benchmark_init(int argc, char** argv) {
   // register benchmarks
   add_benchmark([] (promotable* p) {
     print_header = [=] {
+      print_prog("mergesort");
+      aprintf("n %lu\n", mergesort::n);
+    };
+    mergesort::bench_pre(p);
+  },
+    mergesort::bench_body_serial,
+    mergesort::bench_body_interrupt,
+    mergesort::bench_post);
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
+      print_prog("knapsack");
+      aprintf("n %lu\n", knapsack_n);
+    };
+    knapsack::bench_pre(p);
+  },
+    knapsack::bench_body_serial,
+    knapsack::bench_body_interrupt,
+    knapsack::bench_post);
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
+      print_prog("spmv");
+      aprintf("n %lu\n", spmv::n);
+    };
+    spmv::bench_pre(p);
+  },
+    spmv::bench_body_serial,
+    spmv::bench_body_interrupt,
+    spmv::bench_post);
+  add_benchmark([] (promotable* p) {
+    print_header = [=] {
       print_prog("kmeans");
       aprintf("n %lu\n", kmeans::numObjects);
     };
@@ -207,7 +239,6 @@ void benchmark_init(int argc, char** argv) {
     kmeans::bench_body_serial,
     kmeans::bench_body_interrupt,
     kmeans::bench_post);  
-
   add_benchmark([] (promotable* p) {
     print_header = [] {
       print_prog("incr_array");
@@ -228,18 +259,6 @@ void benchmark_init(int argc, char** argv) {
     plus_reduce_array::bench_body_serial,
     plus_reduce_array::bench_body_interrupt,
     plus_reduce_array::bench_post); 
-  /*
-  add_benchmark([] (promotable* p) {
-    print_header = [=] {
-      print_prog("spmv");
-      aprintf("n %lu\n", spmv::n);
-    };
-    spmv::bench_pre(p);
-  },
-    spmv::bench_body_serial,
-    spmv::bench_body_interrupt,
-    spmv::bench_post);  */
-  
   add_benchmark([] (promotable* p) {
     print_header = [=] {
       print_prog("mandelbrot");
@@ -249,7 +268,7 @@ void benchmark_init(int argc, char** argv) {
   },
     mandelbrot::bench_body_serial,
     mandelbrot::bench_body_interrupt,
-    mandelbrot::bench_post);  /*
+    mandelbrot::bench_post); 
   add_benchmark([] (promotable* p) {
     print_header = [=] {
       print_prog("floyd_warshall");
@@ -259,7 +278,7 @@ void benchmark_init(int argc, char** argv) {
   },
     floyd_warshall::bench_body_serial,
     floyd_warshall::bench_body_interrupt,
-    floyd_warshall::bench_post);*/ 
+    floyd_warshall::bench_post);
   // launch scheduler
   switch (scheduler_configuration) {
   case scheduler_configuration_serial: {
