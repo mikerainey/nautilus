@@ -39,7 +39,8 @@ using scheduler_configuration_type = enum scheduler_configurations_enum {
   scheduler_configuration_serial,
   scheduler_configuration_software_polling,
   scheduler_configuration_interrupt_ping_thread,
-  scheduler_configuration_nopromote_interrupt_ping_thread,
+  scheduler_configuration_nopromote_interrupt_ping_thread, // run interrupt version w/ interrupts disabled
+  scheduler_configuration_serial_interrupt_ping_thread, // run serial version w/ interrupts enabled
   scheduler_configuration_manual,
   nb_scheduler_configurations
 };
@@ -104,6 +105,8 @@ auto add_benchmark(const Pre& pre,
   std::vector<promotable_function_type> bodies(nb_scheduler_configurations, body_interrupt);
   bodies[scheduler_configuration_serial] = promotable_function_type(body_serial);
   bodies[scheduler_configuration_interrupt_ping_thread] = promotable_function_type(body_interrupt);
+  bodies[scheduler_configuration_nopromote_interrupt_ping_thread] = promotable_function_type(body_interrupt);
+  bodies[scheduler_configuration_serial_interrupt_ping_thread] = promotable_function_type(body_serial);
   benchmark_type b = {
     .pre = promotable_function_type(pre),
     .bodies = bodies,
@@ -122,11 +125,14 @@ void launch(std::size_t nb_workers,
   mcsl::initialize_machine();
   assign_kappa(cpu_freq_khz, kappa_usec);
   std::vector<fiber<Scheduler>*> fibers;
-  auto f_cont = new fiber<Scheduler>([=] (promotable*) {});
+  auto f_cont = new fiber<Scheduler>([=] (promotable*) {
+    aprintf("###end-experiment###\n");
+  });
   auto f_term = new terminal_fiber<Scheduler>();
   fibers.push_back(f_cont);
   fibers.push_back(f_term);
   fiber<Scheduler>::add_edge(f_cont, f_term);
+  aprintf("###start-experiment###\n");
   aprintf("==========\n");
   for (auto b : benchmarks) {
     auto f_pre = new fiber<Scheduler>([=] (promotable* p) {
@@ -288,11 +294,18 @@ void benchmark_init(int argc, char** argv) {
     launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, benchmarks);
     break;
   }
-  case scheduler_configuration_interrupt_ping_thread: {
+  case scheduler_configuration_interrupt_ping_thread:
+  case scheduler_configuration_serial_interrupt_ping_thread:{
     using microbench_scheduler_type =
       mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic,
 			      ping_thread_worker, ping_thread_interrupt>;
     launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, benchmarks);
+    break;
+  }
+  case scheduler_configuration_nopromote_interrupt_ping_thread: {
+    using microbench_scheduler_type =
+      mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
+    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, benchmarks);
     break;
   }
   default: {
