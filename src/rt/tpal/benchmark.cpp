@@ -151,6 +151,7 @@ void launch(std::size_t nb_workers,
 	aprintf("execcycles %lu\n", elapsed_cycles);
 	auto et = mcsl::seconds_of(mcsl::load_cpu_frequency_khz(), elapsed_cycles);
 	aprintf("exectime %lu.%03lu\n", et.seconds, et.milliseconds);
+	aprintf("exectime_via_cycles %lu.%03lu\n", et.seconds, et.milliseconds);
       }
       stats::report(nb_workers);
       aprintf("==========\n");
