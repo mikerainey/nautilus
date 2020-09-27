@@ -39,7 +39,7 @@ using scheduler_configuration_type = enum scheduler_configurations_enum {
   scheduler_configuration_serial,
   scheduler_configuration_software_polling,
   scheduler_configuration_interrupt_ping_thread,
-  scheduler_configuration_nopromote_interrupt_ping_thread, // run interrupt version w/ interrupts disabled
+  scheduler_configuration_nopromote_interrupt, // run interrupt version w/ interrupts disabled
   scheduler_configuration_serial_interrupt_ping_thread, // run serial version w/ interrupts enabled
   scheduler_configuration_manual,
   nb_scheduler_configurations
@@ -49,7 +49,8 @@ char* scheduler_configuration_names [] = {
   "serial",
   "software_polling",
   "interrupt_ping_thread",
-  "nopromote_interrupt_ping_thread",
+  "nopromote_interrupt",
+  "serial_interrupt_ping_thread",
   "manual",
   "<bogus>"
 };
@@ -105,7 +106,7 @@ auto add_benchmark(const Pre& pre,
   std::vector<promotable_function_type> bodies(nb_scheduler_configurations, body_interrupt);
   bodies[scheduler_configuration_serial] = promotable_function_type(body_serial);
   bodies[scheduler_configuration_interrupt_ping_thread] = promotable_function_type(body_interrupt);
-  bodies[scheduler_configuration_nopromote_interrupt_ping_thread] = promotable_function_type(body_interrupt);
+  bodies[scheduler_configuration_nopromote_interrupt] = promotable_function_type(body_interrupt);
   bodies[scheduler_configuration_serial_interrupt_ping_thread] = promotable_function_type(body_serial);
   benchmark_type b = {
     .pre = promotable_function_type(pre),
@@ -302,7 +303,7 @@ void benchmark_init(int argc, char** argv) {
     launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, benchmarks);
     break;
   }
-  case scheduler_configuration_nopromote_interrupt_ping_thread: {
+  case scheduler_configuration_nopromote_interrupt: {
     using microbench_scheduler_type =
       mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
     launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, benchmarks);
