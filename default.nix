@@ -19,6 +19,7 @@ stdenv.mkDerivation rec {
   buildInputs = [ gcc grub xorriso binutils ];
 
   buildPhase = ''
+    make clean
     cp ${nautilusConfig} .config
     make oldconfig -j
     cp --remove-destination ${mcsl}/include/*.hpp include/rt/mcsl/
