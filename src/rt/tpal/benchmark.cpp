@@ -69,15 +69,6 @@ auto find_string(char* s, char** ss, std::size_t n) -> std::size_t {
   return n;
 };
 
-static inline
-void nautilus_assign_kappa(uint64_t kappa_usec) {
-  if (cpu_freq_khz == 0) {
-    cpu_freq_khz = mcsl::load_cpu_frequency_khz();
-  }
-  assert(cpu_freq_khz != 0);
-  assign_kappa(cpu_freq_khz, kappa_usec);
-}
-
 /*---------------------------------------------------------------------*/
 /* Launch */
 
@@ -86,7 +77,7 @@ std::function<void()> print_header;
 uint64_t start_cycle, elapsed_cycles;
 
 using promotable_function_type = std::function<void(promotable*)>;
- 
+
 using benchmark_type = struct benchmark_struct {
   promotable_function_type pre;
   std::vector<promotable_function_type> bodies;
@@ -94,15 +85,32 @@ using benchmark_type = struct benchmark_struct {
 };
 
 std::vector<benchmark_type> benchmarks;
+std::vector<char*> benchmark_onlys;
+std::vector<char*> benchmark_excludes;
 
+auto is_benchmark_in_list(char* name, std::vector<char*>& names) -> bool {
+  auto n = names.size();
+  if (n == 0) {
+    return false;
+  }
+  return find_string(name, &names[0], n) != n;
+};
+  
 template <typename Pre,
 	  typename Body_serial,
 	  typename Body_interrupt,
 	  typename Post>
-auto add_benchmark(const Pre& pre,
+auto add_benchmark(char* name,
+		   const Pre& pre,
 		   const Body_serial& body_serial,
 		   const Body_interrupt& body_interrupt,
 		   const Post& post) {
+  if (is_benchmark_in_list(name, benchmark_excludes)) {
+    return;
+  }
+  if ((! benchmark_onlys.empty()) && (! is_benchmark_in_list(name, benchmark_onlys))) {
+    return;
+  }
   std::vector<promotable_function_type> bodies(nb_scheduler_configurations, body_interrupt);
   bodies[scheduler_configuration_serial] = promotable_function_type(body_serial);
   bodies[scheduler_configuration_interrupt_ping_thread] = promotable_function_type(body_interrupt);
@@ -117,6 +125,7 @@ auto add_benchmark(const Pre& pre,
 
 template <typename Scheduler, typename Worker, typename Interrupt>
 void launch(std::size_t nb_workers,
+	    uint64_t kappa_usec,
 	    std::vector<benchmark_type> benchmarks) {
   cpu_freq_khz = nk_detect_cpu_freq((uint32_t)0);
   mcsl::nb_workers = nb_workers;
@@ -178,7 +187,15 @@ void launch(std::size_t nb_workers,
   using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
   scheduler_type::launch(nb_workers);
   ping_thread_interrupt::ping_thread_status.store(ping_thread_status_active);
-} 
+}
+
+auto parse_comma_list(char* cl, std::vector<char*>& v) {
+  char* s = strtok (cl,",");
+  while (s != nullptr) {
+    v.push_back(s);
+    s = strtok (NULL, ",");
+  }
+};
 
 void benchmark_init(int argc, char** argv) {
   uint64_t kappa_usec = tpalrts::dflt_kappa_usec;
@@ -204,30 +221,23 @@ void benchmark_init(int argc, char** argv) {
 	  scheduler_configuration_name = scheduler_configuration_names[j];
 	}
       }      
+    } else if (strcmp(argv[i], "excludes") == 0) {
+      if ((i + 1) < argc) {
+	parse_comma_list(argv[i + 1], benchmark_excludes);
+      }
+    } else if (strcmp(argv[i], "onlys") == 0) {
+      if ((i + 1) < argc) {
+	parse_comma_list(argv[i + 1], benchmark_onlys);
+      }
     }
   }
+  if ((! benchmark_excludes.empty()) && (! benchmark_onlys.empty())) {
+    printk("ERROR, cannot have both excludes and onlys lists nonempty!\n");
+    return;
+  }
   // register benchmarks
-  add_benchmark([] (promotable* p) {
-    print_header = [=] {
-      print_prog("mergesort");
-      aprintf("n %lu\n", mergesort::n);
-    };
-    mergesort::bench_pre(p);
-  },
-    mergesort::bench_body_serial,
-    mergesort::bench_body_interrupt,
-    mergesort::bench_post);
-  add_benchmark([] (promotable* p) {
-    print_header = [=] {
-      print_prog("knapsack");
-      aprintf("n %lu\n", knapsack_n);
-    };
-    knapsack::bench_pre(p);
-  },
-    knapsack::bench_body_serial,
-    knapsack::bench_body_interrupt,
-    knapsack::bench_post);
-  add_benchmark([] (promotable* p) {
+  add_benchmark(spmv::name,
+  [] (promotable* p) {
     print_header = [=] {
       print_prog("spmv");
       aprintf("n %lu\n", spmv::n);
@@ -237,7 +247,30 @@ void benchmark_init(int argc, char** argv) {
     spmv::bench_body_serial,
     spmv::bench_body_interrupt,
     spmv::bench_post);
-  add_benchmark([] (promotable* p) {
+  add_benchmark(mergesort::name,
+  [] (promotable* p) {
+    print_header = [=] {
+      print_prog("mergesort");
+      aprintf("n %lu\n", mergesort::n);
+    };
+    mergesort::bench_pre(p);
+  },
+    mergesort::bench_body_serial,
+    mergesort::bench_body_interrupt,
+    mergesort::bench_post);
+  add_benchmark(knapsack::name,		
+  [] (promotable* p) {
+    print_header = [=] {
+      print_prog("knapsack");
+      aprintf("n %lu\n", knapsack_n);
+    };
+    knapsack::bench_pre(p);
+  },
+    knapsack::bench_body_serial,
+    knapsack::bench_body_interrupt,
+    knapsack::bench_post);
+  add_benchmark(kmeans::name,
+  [] (promotable* p) {
     print_header = [=] {
       print_prog("kmeans");
       aprintf("n %lu\n", kmeans::numObjects);
@@ -247,7 +280,8 @@ void benchmark_init(int argc, char** argv) {
     kmeans::bench_body_serial,
     kmeans::bench_body_interrupt,
     kmeans::bench_post);  
-  add_benchmark([] (promotable* p) {
+  add_benchmark(incr_array::name,
+  [] (promotable* p) {
     print_header = [] {
       print_prog("incr_array");
       aprintf("n %lu\n", incr_array::nb_items);
@@ -257,7 +291,8 @@ void benchmark_init(int argc, char** argv) {
     incr_array::bench_body_serial,
     incr_array::bench_body_interrupt,
     incr_array::bench_post);
-  add_benchmark([] (promotable* p) {
+  add_benchmark(plus_reduce_array::name,
+  [] (promotable* p) {
     print_header = [=] {
       print_prog("plus_reduce_array");
       aprintf("n %lu\n", plus_reduce_array::nb_items);
@@ -267,7 +302,8 @@ void benchmark_init(int argc, char** argv) {
     plus_reduce_array::bench_body_serial,
     plus_reduce_array::bench_body_interrupt,
     plus_reduce_array::bench_post); 
-  add_benchmark([] (promotable* p) {
+  add_benchmark(mandelbrot::name,
+  [] (promotable* p) {
     print_header = [=] {
       print_prog("mandelbrot");
       aprintf("n %lu\n", mandelbrot::nb_items);
@@ -277,7 +313,8 @@ void benchmark_init(int argc, char** argv) {
     mandelbrot::bench_body_serial,
     mandelbrot::bench_body_interrupt,
     mandelbrot::bench_post); 
-  add_benchmark([] (promotable* p) {
+  add_benchmark(floyd_warshall::name,
+  [] (promotable* p) {
     print_header = [=] {
       print_prog("floyd_warshall");
       aprintf("n %lu\n", floyd_warshall::vertices);
@@ -292,7 +329,7 @@ void benchmark_init(int argc, char** argv) {
   case scheduler_configuration_serial: {
     using microbench_scheduler_type =
       mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
-    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, benchmarks);
+    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, kappa_usec, benchmarks);
     break;
   }
   case scheduler_configuration_interrupt_ping_thread:
@@ -300,13 +337,13 @@ void benchmark_init(int argc, char** argv) {
     using microbench_scheduler_type =
       mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic,
 			      ping_thread_worker, ping_thread_interrupt>;
-    launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, benchmarks);
+    launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, kappa_usec, benchmarks);
     break;
   }
   case scheduler_configuration_nopromote_interrupt: {
     using microbench_scheduler_type =
       mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
-    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, benchmarks);
+    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, kappa_usec, benchmarks);
     break;
   }
   default: {
