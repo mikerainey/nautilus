@@ -21,19 +21,9 @@
 extern "C"
 uint32_t nk_get_num_cpus (void);
 
-void call_thunks(std::vector<std::function<void()>>& thunks) {
-  for (auto& f : thunks) {
-    f();
-  }
-}
-
-void print_prog(const char* s) {
-  aprintf("prog %s\n", s);
-}
-
 namespace tpalrts {
 
-uint64_t cpu_freq_khz = 0;
+/*---------------------------------------------------------------------*/
 
 using scheduler_configuration_type = enum scheduler_configurations_enum {
   scheduler_configuration_serial,
@@ -42,6 +32,7 @@ using scheduler_configuration_type = enum scheduler_configurations_enum {
   scheduler_configuration_nopromote_interrupt, // run interrupt version w/ interrupts disabled
   scheduler_configuration_serial_interrupt_ping_thread, // run serial version w/ interrupts enabled
   scheduler_configuration_manual,
+  scheduler_bogus,
   nb_scheduler_configurations
 };
 
@@ -55,26 +46,13 @@ char* scheduler_configuration_names [] = {
   "<bogus>"
 };
 
-char* scheduler_configuration_name = scheduler_configuration_names[nb_scheduler_configurations];
-
-scheduler_configuration_type scheduler_configuration = nb_scheduler_configurations;
-
-auto find_string(char* s, char** ss, std::size_t n) -> std::size_t {
-  std::size_t i = 0;
-  for (; i < n; i++) {
-    if (strcmp(s, ss[i]) == 0) {
-      return i;
-    }
-  }
-  return n;
-};
+auto is_scheduler_configuration_parallel(scheduler_configuration_type sc) {
+  return ((sc == scheduler_configuration_interrupt_ping_thread) ||
+	  (sc == scheduler_configuration_software_polling) ||
+	  (sc == scheduler_configuration_manual));
+}
 
 /*---------------------------------------------------------------------*/
-/* Launch */
-
-std::function<void()> print_header;
-  
-uint64_t start_cycle, elapsed_cycles;
 
 using promotable_function_type = std::function<void(promotable*)>;
 
@@ -84,9 +62,15 @@ using benchmark_type = struct benchmark_struct {
   promotable_function_type post;
 };
 
-std::vector<benchmark_type> benchmarks;
-std::vector<char*> benchmark_onlys;
-std::vector<char*> benchmark_excludes;
+auto find_string(char* s, char** ss, std::size_t n) -> std::size_t {
+  std::size_t i = 0;
+  for (; i < n; i++) {
+    if (strcmp(s, ss[i]) == 0) {
+      return i;
+    }
+  }
+  return n;
+}
 
 auto is_benchmark_in_list(char* name, std::vector<char*>& names) -> bool {
   auto n = names.size();
@@ -94,8 +78,12 @@ auto is_benchmark_in_list(char* name, std::vector<char*>& names) -> bool {
     return false;
   }
   return find_string(name, &names[0], n) != n;
-};
-  
+}
+
+std::vector<char*> benchmark_onlys;
+std::vector<char*> benchmark_excludes;
+std::vector<benchmark_type> benchmarks;
+
 template <typename Pre,
 	  typename Body_serial,
 	  typename Body_interrupt,
@@ -121,29 +109,33 @@ auto add_benchmark(char* name,
     .bodies = bodies,
     .post = promotable_function_type(post) };
   benchmarks.push_back(b);
-};
+}
+  
+std::function<void()> print_header;
+
+/*---------------------------------------------------------------------*/
+
+uint64_t cpu_freq_khz = 0;
+  
+uint64_t start_cycle, elapsed_cycles;
 
 template <typename Scheduler, typename Worker, typename Interrupt>
 void launch(std::size_t nb_workers,
 	    uint64_t kappa_usec,
-	    std::vector<benchmark_type> benchmarks) {
-  cpu_freq_khz = nk_detect_cpu_freq((uint32_t)0);
+	    scheduler_configuration_type scheduler_configuration) {
   mcsl::nb_workers = nb_workers;
-  mcsl::perworker::unique_id::initialize(nb_workers);
   auto nb_cpus = nk_get_num_cpus();
   assert(nb_workers <= nb_cpus);
+  cpu_freq_khz = nk_detect_cpu_freq((uint32_t)0);
+  mcsl::perworker::unique_id::initialize(nb_workers);
   mcsl::initialize_machine();
   assign_kappa(cpu_freq_khz, kappa_usec);
   std::vector<fiber<Scheduler>*> fibers;
-  auto f_cont = new fiber<Scheduler>([=] (promotable*) {
-    aprintf("###end-experiment###\n");
-  });
+  auto f_cont = new fiber<Scheduler>([=] (promotable*) { });
   auto f_term = new terminal_fiber<Scheduler>();
   fibers.push_back(f_cont);
   fibers.push_back(f_term);
   fiber<Scheduler>::add_edge(f_cont, f_term);
-  aprintf("###start-experiment###\n");
-  aprintf("==========\n");
   for (auto b : benchmarks) {
     auto f_pre = new fiber<Scheduler>([=] (promotable* p) {
       b.pre(p);
@@ -158,7 +150,8 @@ void launch(std::size_t nb_workers,
 	print_header();
 	aprintf("nb_cpus %d\n", nb_cpus);
 	aprintf("opsys nautilus\n");
-	aprintf("scheduler_configuration %s\n", scheduler_configuration_name);
+	auto sc = scheduler_configuration_names[scheduler_configuration];
+	aprintf("scheduler_configuration %s\n", sc);
 	aprintf("---\n");
 	aprintf("proc %lu\n", nb_workers);
 	aprintf("kappa_usec %lu\n", kappa_usec);
@@ -184,55 +177,96 @@ void launch(std::size_t nb_workers,
   for (auto f : fibers) {
     f->release();
   }
-  using scheduler_type = mcsl::chase_lev_work_stealing_scheduler<Scheduler, fiber, stats, logging, mcsl::minimal_elastic, Worker, Interrupt>;
+  using scheduler_type =
+    mcsl::chase_lev_work_stealing_scheduler<Scheduler,
+					    fiber,
+					    stats,
+					    logging,
+					    mcsl::minimal_elastic,
+					    Worker,
+					    Interrupt>;
   scheduler_type::launch(nb_workers);
   ping_thread_interrupt::ping_thread_status.store(ping_thread_status_active);
 }
 
+/*---------------------------------------------------------------------*/
+/* Command-line parsing */
+  
 auto parse_comma_list(char* cl, std::vector<char*>& v) {
   char* s = strtok (cl,",");
   while (s != nullptr) {
     v.push_back(s);
     s = strtok (NULL, ",");
   }
+}
+
+auto parse_comma_list(char* cl, std::vector<int>& v) {
+  std::vector<char*> ss;
+  parse_comma_list(cl, ss);
+  for (auto s : ss) {
+    v.push_back(atoi(s));
+  }
+}
+
+auto parse_comma_list(char* cl, std::vector<scheduler_configuration_type>& v) {
+  std::vector<char*> ss;
+  parse_comma_list(cl, ss);
+  for (auto s : ss) {
+    auto j = find_string(s, scheduler_configuration_names, nb_scheduler_configurations);
+    if (j < nb_scheduler_configurations) {
+      v.push_back((scheduler_configuration_type)j);
+    }
+  }
+}
+  
+template <typename F>
+auto parse_kvp(std::size_t i, std::size_t n, char** ss,
+	       char* k, const F& f) {
+  if (strcmp(ss[i], k) == 0) {
+    if ((i + 1) < n) {
+      f(ss[i + 1]);
+    }
+  }
+}
+  
+auto print_prog(const char* s) {
+  aprintf("prog %s\n", s);
 };
 
 void benchmark_init(int argc, char** argv) {
-  uint64_t kappa_usec = tpalrts::dflt_kappa_usec;
-  uint64_t nb_workers = 1;
-  // parse command line
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(argv[i], "kappa_usec") == 0) {
-      if ((i + 1) < argc) {
-	kappa_usec = atoi(argv[i + 1]);
-      }
-    } else if (strcmp(argv[i], "proc") == 0) {
-      if ((i + 1) < argc) {
-	nb_workers = atoi(argv[i + 1]);
-      }
-    } else if (strcmp(argv[i], "scheduler_configuration") == 0) {
-      if ((i + 1) < argc) {
-	auto s = argv[i + 1];
-	auto n = sizeof(scheduler_configuration_names);
-	assert(nb_scheduler_configurations == n);
-	auto j = find_string(s, scheduler_configuration_names, n);
-	if (j < n) {
-	  scheduler_configuration = (scheduler_configuration_type)j;
-	  scheduler_configuration_name = scheduler_configuration_names[j];
-	}
-      }      
-    } else if (strcmp(argv[i], "excludes") == 0) {
-      if ((i + 1) < argc) {
-	parse_comma_list(argv[i + 1], benchmark_excludes);
-      }
-    } else if (strcmp(argv[i], "onlys") == 0) {
-      if ((i + 1) < argc) {
-	parse_comma_list(argv[i + 1], benchmark_onlys);
-      }
+  std::vector<scheduler_configuration_type> scheduler_configurations;
+  std::vector<int> procs;
+  std::vector<int> kappa_usecs;
+  auto parse_command_line = [&] {
+    for (int i = 0; i < argc; i++) {
+      parse_kvp(i, argc, argv, "kappa_usec",
+		[&] (char* v) {
+		  parse_comma_list(v, kappa_usecs);
+		});
+      parse_kvp(i, argc, argv, "proc",
+		[&] (char* v) {
+		  parse_comma_list(v, procs);
+		});
+      parse_kvp(i, argc, argv, "scheduler_configuration",
+		[&] (char* v) {
+		  parse_comma_list(v, scheduler_configurations);
+		});
+      parse_kvp(i, argc, argv, "excludes",
+		[&] (char* v) {
+		  parse_comma_list(v, benchmark_excludes);
+		});
+      parse_kvp(i, argc, argv, "onlys",
+		[&] (char* v) {
+		  parse_comma_list(v, benchmark_onlys);
+		});      
     }
-  }
-  if ((! benchmark_excludes.empty()) && (! benchmark_onlys.empty())) {
-    printk("ERROR, cannot have both excludes and onlys lists nonempty!\n");
+    if ((! benchmark_excludes.empty()) && (! benchmark_onlys.empty())) {
+      printk("ERROR, cannot have both excludes and onlys lists nonempty!\n");
+      return false;
+    }
+    return true;
+  };
+  if (! parse_command_line()) {
     return;
   }
   // register benchmarks
@@ -325,32 +359,43 @@ void benchmark_init(int argc, char** argv) {
     floyd_warshall::bench_body_interrupt,
     floyd_warshall::bench_post);
   // launch scheduler
-  switch (scheduler_configuration) {
-  case scheduler_configuration_serial: {
-    using microbench_scheduler_type =
-      mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
-    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, kappa_usec, benchmarks);
-    break;
+  aprintf("###start-experiment###\n");
+  for (auto scheduler_configuration : scheduler_configurations) {
+    for (auto kappa_usec : kappa_usecs) {
+      for (auto nb_workers : procs) {
+	if ((nb_workers > 1) && (! is_scheduler_configuration_parallel(scheduler_configuration))) {
+	  continue;
+	}
+	switch (scheduler_configuration) {
+	case scheduler_configuration_serial: {
+	  using microbench_scheduler_type =
+	    mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
+	  launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, kappa_usec, scheduler_configuration);
+	  break;
+	}
+	case scheduler_configuration_interrupt_ping_thread:
+	case scheduler_configuration_serial_interrupt_ping_thread:{
+	  using microbench_scheduler_type =
+	    mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic,
+				    ping_thread_worker, ping_thread_interrupt>;
+	  launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, kappa_usec, scheduler_configuration);
+	  break;
+	}
+	case scheduler_configuration_nopromote_interrupt: {
+	  using microbench_scheduler_type =
+	    mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
+	  launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, kappa_usec, scheduler_configuration);
+	  break;
+	}
+	default: {
+	  aprintf("bogus choice for scheduler\n");
+	  return;
+	}}
+	mcsl_worker_notify_exit();
+      }
+    }
   }
-  case scheduler_configuration_interrupt_ping_thread:
-  case scheduler_configuration_serial_interrupt_ping_thread:{
-    using microbench_scheduler_type =
-      mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic,
-			      ping_thread_worker, ping_thread_interrupt>;
-    launch<microbench_scheduler_type, ping_thread_worker, ping_thread_interrupt>(nb_workers, kappa_usec, benchmarks);
-    break;
-  }
-  case scheduler_configuration_nopromote_interrupt: {
-    using microbench_scheduler_type =
-      mcsl::minimal_scheduler<stats, logging, mcsl::minimal_elastic, tpal_worker>;
-    launch<microbench_scheduler_type, tpal_worker, mcsl::minimal_interrupt>(nb_workers, kappa_usec, benchmarks);
-    break;
-  }
-  default: {
-    aprintf("bogus choice for scheduler\n");
-    return;
-  }
-  }
+  aprintf("###end-experiment###\n");
 }
 
 }

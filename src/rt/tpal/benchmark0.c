@@ -4,8 +4,12 @@
 #include <nautilus/timer.h>
 #include <nautilus/nemo.h>
 #include <nautilus/cmdline.h>
+#include <nautilus/spinlock.h>
+#include <nautilus/condvar.h>
 #include <test/test.h>
 #include <assert.h>
+#include <nautilus/rwlock.h>
+#include <nautilus/barrier.h>
 
 #ifndef NAUT_CONFIG_TPAL_RT_DEBUG
 #define DEBUG(fmt, args...)
@@ -108,4 +112,73 @@ void nk_tpal_init() {
 
 void nk_tpal_deinit() { 
 
+}
+
+/*---------------------------------------------------------------------*/
+/* Support for making the TPAL scheduler reentrant */
+
+struct mcsl_barrier_s {
+  int nb_registered;
+  int nb_total;
+  NK_LOCK_T lock;
+  nk_condvar_t condvar;
+  struct mcsl_barrier_s* next;
+};
+
+typedef struct mcsl_barrier_s mcsl_barrier_t;
+
+void mcsl_barrier_init(mcsl_barrier_t* b, int n, mcsl_barrier_t* next) {
+  b->nb_registered = 0;
+  b->nb_total = n;
+  NK_LOCK_INIT(&(b->lock));
+  nk_condvar_init(&(b->condvar));
+  b->next = next;
+}
+
+void mcsl_barrier_destroy(mcsl_barrier_t* b) {
+  NK_LOCK_DEINIT(&(b->lock));
+  nk_condvar_destroy(&(b->condvar));
+  assert(b->nb_registered == b->nb_total);
+  b->nb_registered = 0;
+}
+
+void mcsl_barrier_notify(mcsl_barrier_t* b) {
+  int last = 0;
+  NK_LOCK(&(b->lock));
+  int n = ++b->nb_registered;
+  if (n == b->nb_total) {
+    nk_condvar_signal(&(b->condvar));
+    last = 1;
+  }
+  NK_UNLOCK(&(b->lock));
+  if (last && (b->next != NULL)) {
+    mcsl_barrier_notify(b->next);
+  }
+}
+
+void mcsl_barrier_wait(mcsl_barrier_t* b) {
+  NK_LOCK(&(b->lock));
+  nk_condvar_wait(&(b->condvar), &(b->lock));
+  NK_UNLOCK(&(b->lock));
+}
+
+mcsl_barrier_t next;
+mcsl_barrier_t group;
+
+void mcsl_phase_begin(int nb_workers) {
+  mcsl_barrier_init(&next, 1, NULL);
+  mcsl_barrier_init(&group, nb_workers, &next);
+}
+
+void mcsl_worker0_wait() {
+  mcsl_barrier_wait(&next);
+}
+
+void mcsl_phase_end() {
+  mcsl_barrier_destroy(&group);
+  mcsl_barrier_destroy(&next);
+}
+
+void mcsl_worker_notify_exit() {
+  mcsl_barrier_notify(&group);
 }
