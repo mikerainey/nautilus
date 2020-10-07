@@ -544,7 +544,7 @@ _kmem_malloc (size_t size, int cpu, int zero)
 	if (block) {
 	  hdr = block_hash_alloc(block);
 	  if (!hdr) {
-            KMEM_DEBUG("malloc cannot allocate header, releasing block\n");
+            KMEM_ERROR("malloc cannot allocate header, releasing block\n");
 	    flags = spin_lock_irq_save(&zone->lock);
 	    buddy_free(zone,block,order);
 	    spin_unlock_irq_restore(&zone->lock, flags);
@@ -568,12 +568,12 @@ _kmem_malloc (size_t size, int cpu, int zero)
     } else {
 	// attempt to get memory back by reaping threads now...
 	if (first) {
-	    KMEM_DEBUG("malloc initially failed for size %lu order %lu attempting reap\n",size,order);
+	    KMEM_ERROR("malloc initially failed for size %lu order %lu attempting reap\n",size,order);
 	    nk_sched_reap(1);
 	    first=0;
 	    goto retry;
 	}
-	KMEM_DEBUG("malloc permanently failed for size %lu order %lu\n",size,order);
+	KMEM_ERROR("malloc permanently failed for size %lu order %lu\n",size,order);
 	NK_GPIO_OUTPUT_MASK(~0x20,GPIO_AND);
         return NULL;
     }
@@ -642,6 +642,7 @@ kmem_free (void * addr)
 #endif
 
     if (!addr) {
+        KMEM_ERROR("failed to free null pointer\n");
         return;
     }
 
@@ -712,7 +713,7 @@ kmem_realloc (void * ptr, size_t size)
 	hdr = block_hash_find_entry(ptr);
 
 	if (!hdr) {
-		KMEM_DEBUG("Realloc failed to find entry for block %p\n", ptr);
+		KMEM_ERROR("Realloc failed to find entry for block %p\n", ptr);
 		return NULL;
 	}
 
