@@ -234,9 +234,15 @@ auto print_prog(const char* s) {
 };
 
 void benchmark_init(int argc, char** argv) {
-  std::vector<scheduler_configuration_type> scheduler_configurations;
-  std::vector<int> procs;
-  std::vector<int> kappa_usecs;
+  auto nb_cpus = nk_get_num_cpus();
+  std::vector<scheduler_configuration_type> scheduler_configurations = {
+    scheduler_configuration_serial,
+    scheduler_configuration_interrupt_ping_thread,
+    scheduler_configuration_nopromote_interrupt, 
+    scheduler_configuration_serial_interrupt_ping_thread
+  };
+  std::vector<int> procs = {1, nb_cpus - 1};
+  std::vector<int> kappa_usecs = {20, 100};
   auto parse_command_line = [&] {
     for (int i = 0; i < argc; i++) {
       parse_kvp(i, argc, argv, "kappa_usec",
