@@ -274,9 +274,31 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("spmv");
-      aprintf("n %lu\n", spmv::n);
+      aprintf("matrixgen arrowhead\n");
     };
-    spmv::bench_pre(p);
+    spmv::bench_pre_arrowhead(p);
+  },
+    spmv::bench_body_serial,
+    spmv::bench_body_interrupt,
+    spmv::bench_post);
+  add_benchmark(spmv::name,
+  [] (promotable* p) {
+    print_header = [=] {
+      print_prog("spmv");
+      aprintf("matrixgen bigcols\n");
+    };
+    spmv::bench_pre_bigcols(p);
+  },
+    spmv::bench_body_serial,
+    spmv::bench_body_interrupt,
+    spmv::bench_post);
+  add_benchmark(spmv::name,
+  [] (promotable* p) {
+    print_header = [=] {
+      print_prog("spmv");
+      aprintf("matrixgen bigrows\n");
+    };
+    spmv::bench_pre_bigrows(p);
   },
     spmv::bench_body_serial,
     spmv::bench_body_interrupt,
