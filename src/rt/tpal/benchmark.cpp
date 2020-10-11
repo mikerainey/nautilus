@@ -126,9 +126,8 @@ void launch(std::size_t nb_workers,
   mcsl::nb_workers = nb_workers;
   auto nb_cpus = nk_get_num_cpus();
   assert(nb_workers <= nb_cpus);
-  cpu_freq_khz = nk_detect_cpu_freq((uint32_t)0);
+  assert(cpu_freq_khz != 0);
   mcsl::perworker::unique_id::initialize(nb_workers);
-  mcsl::initialize_machine();
   assign_kappa(cpu_freq_khz, kappa_usec);
   std::vector<fiber<Scheduler>*> fibers;
   auto f_cont = new fiber<Scheduler>([=] (promotable*) { });
@@ -158,7 +157,7 @@ void launch(std::size_t nb_workers,
 	aprintf("kappa_cycles %lu\n", kappa_cycles);
 	aprintf("cpu_freq_khz %lu\n", cpu_freq_khz);
 	aprintf("execcycles %lu\n", elapsed_cycles);
-	auto et = mcsl::seconds_of(mcsl::load_cpu_frequency_khz(), elapsed_cycles);
+	auto et = mcsl::seconds_of(cpu_freq_khz, elapsed_cycles);
 	aprintf("exectime %lu.%03lu\n", et.seconds, et.milliseconds);
 	aprintf("exectime_via_cycles %lu.%03lu\n", et.seconds, et.milliseconds);
       }
@@ -193,6 +192,7 @@ void launch(std::size_t nb_workers,
 /* Command-line parsing */
   
 auto parse_comma_list(char* cl, std::vector<char*>& v) {
+  v.clear();
   char* s = strtok (cl,",");
   while (s != nullptr) {
     v.push_back(s);
@@ -201,14 +201,16 @@ auto parse_comma_list(char* cl, std::vector<char*>& v) {
 }
 
 auto parse_comma_list(char* cl, std::vector<int>& v) {
+  v.clear();
   std::vector<char*> ss;
   parse_comma_list(cl, ss);
   for (auto s : ss) {
     v.push_back(atoi(s));
   }
 }
-
+  
 auto parse_comma_list(char* cl, std::vector<scheduler_configuration_type>& v) {
+  v.clear();
   std::vector<char*> ss;
   parse_comma_list(cl, ss);
   for (auto s : ss) {
@@ -228,6 +230,15 @@ auto parse_kvp(std::size_t i, std::size_t n, char** ss,
     }
   }
 }
+
+auto parse_int(char* cl, int& n) {
+  std::vector<int> v;
+  parse_comma_list(cl, v);
+  if (v.size() != 1) {
+    aprintf("ERROR: bogus command line argument for %s\n", cl);
+  }
+  n = v.back();
+}
   
 auto print_prog(const char* s) {
   aprintf("prog %s\n", s);
@@ -235,6 +246,8 @@ auto print_prog(const char* s) {
 
 void benchmark_init(int argc, char** argv) {
   auto nb_cpus = nk_get_num_cpus();
+  cpu_freq_khz = mcsl::load_cpu_frequency_khz();
+  mcsl::initialize_machine();
   std::vector<scheduler_configuration_type> scheduler_configurations = {
     scheduler_configuration_serial,
     scheduler_configuration_interrupt_ping_thread,
@@ -264,7 +277,15 @@ void benchmark_init(int argc, char** argv) {
       parse_kvp(i, argc, argv, "onlys",
 		[&] (char* v) {
 		  parse_comma_list(v, benchmark_onlys);
-		});      
+		});
+      parse_kvp(i, argc, argv, "freq",
+		[&] (char* v) {
+		  int cpu_freq_khz0 = 0;
+		  parse_int(v, cpu_freq_khz0);
+		  if (cpu_freq_khz0 != 0) {
+		    cpu_freq_khz = cpu_freq_khz0;
+		  }
+		});
     }
     if ((! benchmark_excludes.empty()) && (! benchmark_onlys.empty())) {
       printk("ERROR, cannot have both excludes and onlys lists nonempty!\n");
@@ -335,7 +356,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("kmeans");
-      aprintf("n %lu\n", kmeans::numObjects);
+      aprintf("nb_objects %lu\n", kmeans::numObjects);
     };
     kmeans::bench_pre(p);
   },
@@ -368,7 +389,8 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("mandelbrot");
-      aprintf("n %lu\n", mandelbrot::nb_items);
+      aprintf("width %lu\n", mandelbrot::width);
+      aprintf("height %lu\n", mandelbrot::height);
     };
     mandelbrot::bench_pre(p);
   },
@@ -379,7 +401,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("floyd_warshall");
-      aprintf("n %lu\n", floyd_warshall::vertices);
+      aprintf("vertices %lu\n", floyd_warshall::vertices);
     };
     floyd_warshall::bench_pre(p);
   },
