@@ -25,7 +25,7 @@
 
 static
 int handle_tpal_benchmark (int argc, char** argv) {
-  tpal_bechmark_init(argc, argv);  
+  tpal_benchmark_init(argc, argv);
   return 0;
 }
 
@@ -112,6 +112,24 @@ void nk_tpal_init() {
 
 void nk_tpal_deinit() { 
 
+}
+
+NK_LOCK_T print_lock;
+
+void mcsl_init_print_lock() {
+  NK_LOCK_INIT(&print_lock);
+}
+
+void mcsl_destroy_print_lock() {
+  NK_LOCK_DEINIT(&print_lock);
+}
+
+void mcsl_take_print_lock() {
+  NK_LOCK(&print_lock);
+}
+
+void mcsl_release_print_lock() {
+  NK_UNLOCK(&print_lock);
 }
 
 /*---------------------------------------------------------------------*/

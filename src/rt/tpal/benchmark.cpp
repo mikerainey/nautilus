@@ -138,6 +138,7 @@ void launch(std::size_t nb_workers,
   for (auto b : benchmarks) {
     auto f_pre = new fiber<Scheduler>([=] (promotable* p) {
       b.pre(p);
+      initialize_rollfoward_table();
       stats::start_collecting();
       start_cycle = mcsl::cycles::now();
     });
@@ -163,6 +164,7 @@ void launch(std::size_t nb_workers,
       }
       stats::report(nb_workers);
       aprintf("==========\n");
+      destroy_rollfoward_table();
       b.post(p);
     });
     fiber<Scheduler>::add_edge(f_pre, f_body);
@@ -301,7 +303,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("spmv");
-      aprintf("matrixgen arrowhead\n");
+      aprintf("inputname arrowhead\n");
     };
     spmv::bench_pre_arrowhead(p);
   },
@@ -312,7 +314,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("spmv");
-      aprintf("matrixgen bigcols\n");
+      aprintf("inputname bigcols\n");
     };
     spmv::bench_pre_bigcols(p);
   },
@@ -323,7 +325,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("spmv");
-      aprintf("matrixgen bigrows\n");
+      aprintf("inputname bigrows\n");
     };
     spmv::bench_pre_bigrows(p);
   },
@@ -334,7 +336,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("mergesort");
-      aprintf("n %lu\n", mergesort::n);
+      aprintf("inputname random_ints\n");
     };
     mergesort::bench_pre(p);
   },
@@ -345,7 +347,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("knapsack");
-      aprintf("n %lu\n", knapsack_n);
+      aprintf("inputname thirty_six_items\n");
     };
     knapsack::bench_pre(p);
   },
@@ -356,7 +358,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("kmeans");
-      aprintf("nb_objects %lu\n", kmeans::numObjects);
+      aprintf("inputname thirty_six_items\n");
     };
     kmeans::bench_pre(p);
   },
@@ -367,7 +369,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [] {
       print_prog("incr_array");
-      aprintf("n %lu\n", incr_array::nb_items);
+      aprintf("inputname one_hundred_million_64bit_ints\n");
     };
     incr_array::bench_pre(p);
   },
@@ -378,7 +380,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("plus_reduce_array");
-      aprintf("n %lu\n", plus_reduce_array::nb_items);
+      aprintf("inputname one_hundred_million_64bit_ints\n");
     };
     plus_reduce_array::bench_pre(p);
   },
@@ -389,8 +391,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("mandelbrot");
-      aprintf("width %lu\n", mandelbrot::width);
-      aprintf("height %lu\n", mandelbrot::height);
+      aprintf("inputname fourk_by_fourk\n");
     };
     mandelbrot::bench_pre(p);
   },
@@ -401,7 +402,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("floyd_warshall");
-      aprintf("vertices %lu\n", floyd_warshall::vertices);
+      aprintf("inputname onek_vertices\n");
     };
     floyd_warshall::bench_pre(p);
   },
@@ -451,7 +452,7 @@ void benchmark_init(int argc, char** argv) {
 }
 
 extern "C" {
-  void tpal_bechmark_init(int argc, char** argv) {
+  void tpal_benchmark_init(int argc, char** argv) {
     tpalrts::benchmark_init(argc, argv);
   }
 }
