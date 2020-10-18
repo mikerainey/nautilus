@@ -358,7 +358,7 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("kmeans");
-      aprintf("inputname thirty_six_items\n");
+      aprintf("inputname one_million_objects\n");
     };
     kmeans::bench_pre(p);
   },
@@ -473,10 +473,12 @@ void* operator new(std::size_t n, std::nothrow_t const&) {
 }
 
 void operator delete(void * p, std::size_t) { // or delete(void *, std::size_t)
+  assert(p != nullptr);
   std::free(p);
 }
 
 void operator delete(void * p, std::nothrow_t const&) {
+  assert(p != nullptr);
   std::free(p);
 }
 
@@ -487,5 +489,6 @@ void* operator new(std::size_t n, std::align_val_t) {
 }
 
 void operator delete(void* p, unsigned long, std::align_val_t) {
+  assert(p != nullptr);
   std::free(p);
 }
