@@ -243,7 +243,8 @@ auto parse_int(char* cl, int& n) {
 }
   
 auto print_prog(const char* s) {
-  aprintf("prog %s\n", s);
+  aprintf("prog run\n");
+  aprintf("benchmark %s\n", s);
 };
 
 void benchmark_init(int argc, char** argv) {
