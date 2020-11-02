@@ -337,9 +337,20 @@ void benchmark_init(int argc, char** argv) {
   [] (promotable* p) {
     print_header = [=] {
       print_prog("mergesort");
-      aprintf("inputname random_ints\n");
+      aprintf("inputname uniformdist\n");
     };
-    mergesort::bench_pre(p);
+    mergesort::bench_pre_uniformdist(p);
+  },
+    mergesort::bench_body_serial,
+    mergesort::bench_body_interrupt,
+    mergesort::bench_post);
+  add_benchmark(mergesort::name,
+  [] (promotable* p) {
+    print_header = [=] {
+      print_prog("mergesort");
+      aprintf("inputname expdist\n");
+    };
+    mergesort::bench_pre_expdist(p);
   },
     mergesort::bench_body_serial,
     mergesort::bench_body_interrupt,
@@ -402,8 +413,21 @@ void benchmark_init(int argc, char** argv) {
   add_benchmark(floyd_warshall::name,
   [] (promotable* p) {
     print_header = [=] {
+      floyd_warshall::vertices = 1024;
       print_prog("floyd_warshall");
       aprintf("inputname onek_vertices\n");
+    };
+    floyd_warshall::bench_pre(p);
+  },
+    floyd_warshall::bench_body_serial,
+    floyd_warshall::bench_body_interrupt,
+    floyd_warshall::bench_post);
+  add_benchmark(floyd_warshall::name,
+  [] (promotable* p) {
+    print_header = [=] {
+      floyd_warshall::vertices = 2048;
+      print_prog("floyd_warshall");
+      aprintf("inputname twok_vertices\n");
     };
     floyd_warshall::bench_pre(p);
   },
